@@ -1,0 +1,136 @@
+.Navbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--blue-500);
+  padding: 0 42px;
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+  font-family: "Segoe UI", Arial, sans-serif;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+/* Menu */
+.Navbar ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.Navbar li {
+  position: relative;
+}
+
+/* Links */
+.Navbar a {
+  color: #fff !important;;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  color: #000;
+  padding: 6px 17px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+  border-right: 2px solid white;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  
+}
+.Navbar li:last-child a {
+  border-right: none;
+}
+
+/* Dropdown arrow */
+.hasDropdown > a::after {
+  content: "▾";
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+/* Hover underline */
+.Navbar li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 3px;
+  background-color: var(--blue-300);
+  transition: width 0.2s ease;
+}
+
+.Navbar li:hover::before,
+.Navbar li.active::before {
+  width: 100%;
+}
+
+/* Active & Hover text */
+.Navbar li:hover > a,
+.Navbar li.active > a {
+  color: #b30021;
+}
+
+/* ================= DROPDOWN ================= */
+
+.dropdown {
+  position: absolute;
+  max-width: inherit;
+  top: calc(100%);
+  left: 0;
+  min-width: 260px;
+  background: var(--blue-500);
+  border-radius: 6px;
+  box-shadow: 0 12px 22px rgba(0,0,0,0.12);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.Navbar li:hover .dropdown {
+  display: flex;
+}
+
+.dropdown a {
+  padding: 12px 18px;
+  font-size: 14px;
+  color: #000;
+  white-space: nowrap;
+  margin: 0;
+  border: none;
+}
+
+.dropdown a:hover {
+  background: hsl(216, 33%, 9%);
+}
+
+/* ================= HAMBURGER ================= */
+
+.hmenu {
+  display: none;
+  position: absolute;
+  right: 22px;
+  cursor: pointer;
+}
+
+.hmenu svg {
+  width: 28px;
+  height: 28px;
+  stroke: #000;
+  stroke-width: 2.5;
+}
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 1100px) {
+  .Navbar ul {
+    display: none;
+  }
+
+  .hmenu {
+    display: block;
+  }
+}

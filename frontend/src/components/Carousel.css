@@ -1,0 +1,161 @@
+/* ImageCarousel.css */
+
+.ic-carousel {
+  position: relative;
+  width: 100%;
+  outline: none;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.ic-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+  background: #020617;
+}
+
+.ic-track {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+  will-change: transform;
+}
+
+.ic-slide {
+  flex: 0 0 100%;
+  position: relative;
+}
+
+.ic-image {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Caption */
+.ic-caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 12px 16px;
+  color: #f9fafb;
+  font-size: 0.9rem;
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.9),
+    rgba(15, 23, 42, 0.4),
+    transparent
+  );
+}
+
+/* Arrows */
+.ic-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  color: #e5e7eb;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.5);
+}
+
+.ic-arrow:hover {
+  background: rgba(15, 23, 42, 0.9);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.ic-arrow:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.ic-arrow-left {
+  left: 12px;
+}
+
+.ic-arrow-right {
+  right: 12px;
+}
+
+/* Indicators */
+.ic-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ic-indicator {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background: #9ca3af;
+  opacity: 0.5;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    width 0.2s ease,
+    background 0.2s ease;
+}
+
+.ic-indicator-active {
+  width: 20px;
+  opacity: 1;
+  background: #111827;
+  transform: translateY(-1px);
+}
+
+/* Counter (bottom-right) */
+.ic-counter {
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .ic-image {
+    height: 260px;
+  }
+
+  .ic-arrow {
+    width: 34px;
+    height: 34px;
+    font-size: 1.3rem;
+  }
+
+  .ic-caption {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+
+  .ic-counter {
+    bottom: 10px;
+    right: 8px;
+  }
+}
