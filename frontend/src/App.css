@@ -3,6 +3,10 @@
   margin: 0 auto;
 }
 
+.AppBody {
+  padding: 0 5%;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

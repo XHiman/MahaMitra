@@ -1,0 +1,87 @@
+.MStride{
+    display: grid;
+    grid-template-columns: 3fr 1fr  ;
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.Content {
+    grid-column: 1;
+}
+
+.SideBar {
+    position: sticky;
+    top: 100px;
+    margin-top: 24px;
+    grid-column: 2;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  max-height: fit-content;
+}
+
+/* Segmented tab bar */
+.Download-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.Download-tab {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  padding: 6px 8px;
+  transition: color 0.2s ease, border-bottom 0.2s ease;
+}
+
+.Download-tab:hover {
+  color: #0f172a;
+}
+
+.Download-tab.active {
+  color: var(--prim-button, #1d4ed8);
+  font-weight: 600;
+  border-bottom: 2px solid var(--prim-button, #1d4ed8);
+}
+
+/* Separator styling */
+.tab-separator {
+  margin-left: 8px;
+  color: #9ca3af;
+}
+
+/* Table */
+.Download-GR table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.Download-GR thead {
+  background: #f8fafc;
+}
+
+.Download-GR th,
+.Download-GR td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.Download-GR a {
+  color: var(--prim-button, #1d4ed8);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.Download-GR a:hover {
+  text-decoration: underline;
+}

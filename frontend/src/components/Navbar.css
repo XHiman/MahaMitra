@@ -35,8 +35,8 @@
   align-items: center;
   transition: color 0.15s ease;
   border-right: 2px solid white;
-  margin-top: 12px;
-  margin-bottom: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
   
 }
 .Navbar li:last-child a {

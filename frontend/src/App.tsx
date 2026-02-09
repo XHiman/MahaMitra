@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router'
 import AAPEntry from './components/AAP/AAPEntry'
 import UtilityBar from './components/UtilityBar'
 import MSride from './pages/Initiatives/MahaSTRIDE'
+import Footer from './components/Footer'
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
           <Route path='/mahastride' element={<MSride/>}/>
         </Routes>
       </div>
+      <Footer/>
     </div>
   )
 }
