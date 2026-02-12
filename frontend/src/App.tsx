@@ -3,10 +3,10 @@ import Navbar from './components/Navbar'
 import HomePage from './pages/Home'
 //import DistrictPage from './components/districtPages/Districts'
 import { Route, Routes } from 'react-router'
-import AAPEntry from './components/AAP/AAPEntry'
 import UtilityBar from './components/UtilityBar'
 import MSride from './pages/Initiatives/MahaSTRIDE'
 import Footer from './components/Footer'
+import AAPDash from './components/AAP/AAPDash'
 
 function App() {
 
@@ -17,7 +17,7 @@ function App() {
       <div className="AppBody">
         <Routes>
           <Route index element={<HomePage/>}/>
-          <Route path='/Districts' element={<AAPEntry district='Pune'/>}/>
+          <Route path='/Annual-Action-Plan' element={<AAPDash/>}/>
           <Route path='/mahastride' element={<MSride/>}/>
         </Routes>
       </div>

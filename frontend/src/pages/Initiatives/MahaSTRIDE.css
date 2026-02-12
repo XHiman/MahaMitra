@@ -1,19 +1,102 @@
 .MStride{
     display: grid;
-    grid-template-columns: 3fr 1fr  ;
+    grid-template-columns: 1fr 3fr  ;
     gap: 24px;
     margin-top: 24px;
+    padding-bottom: 5%;
+}
+.PageContent p{
+  text-align: justify;
+}
+.Content {
+    grid-column: 2;
+    grid-row: 2;
+}
+.Title-banner {
+  grid-column: 1 / span 2;
+  height: 400px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
 }
 
-.Content {
-    grid-column: 1;
+/* Background crossfade layers */
+.Banner-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out, transform 8s ease-out;
+
+  transform: scale(1);
+}
+
+/* Active image fades in + subtle zoom */
+.Banner-bg.active {
+  opacity: 1;
+  transform: scale(1.06); /* GIGW-safe subtle motion */
+}
+
+/* Overlay badge */
+.Rect-bg {
+  width: 400px;
+  height: 110px;
+  background-color: #007bff;
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+
+  position: absolute;
+  top: 70%;
+  transform: translateY(-50%);
+  
+  padding-right: 5%;
+
+  z-index: 2;
+}
+
+/* STATS */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 22px 0 28px;
+}
+
+.stat-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-card span {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.stat-card label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  display: block;
+  margin-top: 4px;
 }
 
 .SideBar {
-    position: sticky;
-    top: 100px;
-    margin-top: 24px;
-    grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 100px;
+  grid-column: 1;
+  grid-row: 2;
   padding: 16px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -84,4 +167,10 @@
 
 .Download-GR a:hover {
   text-decoration: underline;
+}
+
+nav#Breadcrumb {
+  font-size: 14px;
+  margin-bottom: 0;
+  padding: 0;
 }
