@@ -15,6 +15,24 @@
 
 /* Light Theme Color Palette*/
 :root {
+  --primary: #1d4ed8;
+  --primary-light: #eef2ff;
+
+  --bg-page: #f9fafb;
+  --bg-card: #ffffff;
+  --bg-soft: #f8fafc;
+
+  --border: #e5e7eb;
+
+  --text-main: #0f172a;
+  --text-muted: #6b7280;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+:root {
   color-scheme: light;
 
   /* Backgrounds */
