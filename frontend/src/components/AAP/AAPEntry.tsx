@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import './AAPEntry.css';
+import React, { useState, useEffect } from "react";
+import "./AAPEntry.css";
 
 // Types
 interface Scheme {
@@ -35,41 +35,39 @@ interface Props {
 }
 
 const ECONOMIC_SECTORS = [
-  'Agriculture and Allied Activities',
-  'Mining and Quarrying',
-  'Manufacturing',
-  'Electricity, Gas and Water Supply',
-  'Construction',
-  'Trade, Hotels and Restaurants',
-  'Transport, Storage and Communication',
-  'Banking and Insurance',
-  'Real Estate and Business Services',
-  'Public Administration',
-  'Education',
-  'Health and Social Work',
-  'Community, Social and Personal Services',
-  'Financial Services',
-  'Professional Services',
-  'Information Technology',
-  'Tourism and Hospitality'
+  "Agriculture and Allied Activities",
+  "Mining and Quarrying",
+  "Manufacturing",
+  "Electricity, Gas and Water Supply",
+  "Construction",
+  "Trade, Hotels and Restaurants",
+  "Transport, Storage and Communication",
+  "Banking and Insurance",
+  "Real Estate and Business Services",
+  "Public Administration",
+  "Education",
+  "Health and Social Work",
+  "Community, Social and Personal Services",
+  "Financial Services",
+  "Professional Services",
+  "Information Technology",
+  "Tourism and Hospitality",
 ];
 
-const INITIAL_FORM_DATA: AAPEntryData = {
-  subSector: '',
-  objective: '',
-  specificIntervention: '',
-  estimatedCost: 0,
-  mappedScheme: '',
-  currentFYBudget: 0,
-  apportionedBudget: 0,
-  financingGap: 0,
-  sourceOfFinancing: '',
-  physicalTargets: [],
-  employmentPotential: 0
-};
-
-const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
-  const [formData, setFormData] = useState<AAPEntryData>(INITIAL_FORM_DATA);
+const AAPDash: React.FC<Props> = ({ district, onSubmit }) => {
+  const [formData, setFormData] = useState<AAPEntryData>({
+    subSector: "",
+    objective: "",
+    specificIntervention: "",
+    estimatedCost: 0,
+    mappedScheme: "",
+    currentFYBudget: 0,
+    apportionedBudget: 0,
+    financingGap: 0,
+    sourceOfFinancing: "",
+    physicalTargets: [],
+    employmentPotential: 0,
+  });
 
   const [schemesData, setSchemesData] = useState<Scheme[]>([]);
   const [filteredSchemes, setFilteredSchemes] = useState<Scheme[]>([]);
@@ -80,10 +78,6 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const [showTableOverlay, setShowTableOverlay] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const setField = <K extends keyof AAPEntryData>(field: K, value: AAPEntryData[K]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   // Auto-load CSV from public folder on mount
   useEffect(() => {
     loadCSVFromPublic();
@@ -93,7 +87,7 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   // Filter schemes based on district
   useEffect(() => {
     const filtered = schemesData.filter(
-      scheme => !scheme.district || scheme.district === district
+      (scheme) => !scheme.district || scheme.district === district,
     );
     setFilteredSchemes(filtered);
   }, [district, schemesData]);
@@ -102,18 +96,18 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const loadSavedEntries = async () => {
     try {
       const response = await fetch(`/data/${district}-aap.csv`);
-      
+
       if (!response.ok) {
         // File doesn't exist yet, that's okay
         setSavedEntries([]);
         return;
       }
-      
+
       const text = await response.text();
       const entries = parseAAPEntriesCSV(text);
       setSavedEntries(entries);
     } catch (error) {
-      console.log('No saved entries yet for this district');
+      console.log("No saved entries yet for this district");
       setSavedEntries([]);
     }
   };
@@ -121,12 +115,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   // Parse AAP entries CSV
   const parseAAPEntriesCSV = (csvText: string): AAPEntryData[] => {
     try {
-      const lines = csvText.split('\n').filter(line => line.trim());
+      const lines = csvText.split("\n").filter((line) => line.trim());
       if (lines.length < 2) return [];
 
       const entries: AAPEntryData[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split('|').map(v => v.trim());
+        const values = lines[i].split("|").map((v) => v.trim());
         if (values.length >= 10) {
           entries.push({
             subSector: values[0],
@@ -139,14 +133,14 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
             financingGap: parseFloat(values[7]) || 0,
             sourceOfFinancing: values[8],
             physicalTargets: values[9] ? JSON.parse(values[9]) : [],
-            employmentPotential: parseInt(values[10]) || 0
+            employmentPotential: parseInt(values[10]) || 0,
           });
         }
       }
-      
+
       return entries;
     } catch (error) {
-      console.error('Error parsing AAP entries CSV:', error);
+      console.error("Error parsing AAP entries CSV:", error);
       return [];
     }
   };
@@ -155,41 +149,44 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const saveToCSV = async (entries: AAPEntryData[]) => {
     try {
       // Create CSV content with pipe delimiter (safer for text with commas)
-      const headers = 'Sub-Sector|Objective|Specific Intervention|Estimated Cost|Mapped Scheme|Current FY Budget|Apportioned Budget|Financing Gap|Source of Financing|Physical Targets|Employment Potential';
-      const rows = entries.map(entry => {
-        const physicalTargetsJSON = JSON.stringify(entry.physicalTargets).replace(/\|/g, '¦');
+      const headers =
+        "Sub-Sector|Objective|Specific Intervention|Estimated Cost|Mapped Scheme|Current FY Budget|Apportioned Budget|Financing Gap|Source of Financing|Physical Targets|Employment Potential";
+      const rows = entries.map((entry) => {
+        const physicalTargetsJSON = JSON.stringify(
+          entry.physicalTargets,
+        ).replace(/\|/g, "¦");
         return [
           entry.subSector,
-          entry.objective.replace(/\|/g, '¦').replace(/\n/g, ' '),
-          entry.specificIntervention.replace(/\|/g, '¦').replace(/\n/g, ' '),
+          entry.objective.replace(/\|/g, "¦").replace(/\n/g, " "),
+          entry.specificIntervention.replace(/\|/g, "¦").replace(/\n/g, " "),
           entry.estimatedCost,
           entry.mappedScheme,
           entry.currentFYBudget,
           entry.apportionedBudget,
           entry.financingGap,
-          entry.sourceOfFinancing.replace(/\|/g, '¦').replace(/\n/g, ' '),
+          entry.sourceOfFinancing.replace(/\|/g, "¦").replace(/\n/g, " "),
           physicalTargetsJSON,
-          entry.employmentPotential
-        ].join('|');
+          entry.employmentPotential,
+        ].join("|");
       });
-      
-      const csvContent = [headers, ...rows].join('\n');
-      
-      console.log('Saving to backend:', `/data/${district}-aap.csv`);
-      
+
+      const csvContent = [headers, ...rows].join("\n");
+
+      console.log("Saving to backend:", `/data/${district}-aap.csv`);
+
       // Call backend API to save CSV
-      const response = await fetch('/api/save-aap', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
+      const response = await fetch("/api/save-aap", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          district, 
+        body: JSON.stringify({
+          district,
           csvContent,
-          fileName: `${district}-aap.csv`
-        })
+          fileName: `${district}-aap.csv`,
+        }),
       });
-      
+
       if (!response.ok) {
         let errorMessage = `Server returned ${response.status}`;
         try {
@@ -201,95 +198,80 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
         }
         throw new Error(errorMessage);
       }
-      
+
       let result;
       try {
         result = await response.json();
-        console.log('Saved successfully:', result);
+        console.log("Saved successfully:", result);
       } catch (jsonError) {
-        console.log('Save response (non-JSON):', response.status);
+        console.log("Save response (non-JSON):", response.status);
         // If we get here, the save might have worked but response format is unexpected
       }
-      
+
       return true;
     } catch (error) {
-      console.error('Error saving to CSV:', error);
-      alert(`Error saving entries: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error saving to CSV:", error);
+      alert(
+        `Error saving entries: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       return false;
     }
   };
   const loadCSVFromPublic = async () => {
     try {
-      const response = await fetch('/data/scheme.csv');
-      
+      const response = await fetch("/data/scheme.csv");
+
       if (!response.ok) {
-        throw new Error('CSV file not found');
+        throw new Error("CSV file not found");
       }
-      
+
       const text = await response.text();
       const parsed = parseCSV(text);
       setSchemesData(parsed);
     } catch (error) {
-      console.error('Could not load CSV from public folder:', error);
+      console.error("Could not load CSV from public folder:", error);
     }
   };
 
   // Parse CSV text
   const parseCSV = (csvText: string): Scheme[] => {
     try {
-      const lines = csvText.split('\n').filter(line => line.trim());
+      const lines = csvText.split("\n").filter((line) => line.trim());
       if (lines.length < 2) return [];
 
       const schemes: Scheme[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
+        const values = lines[i].split(",").map((v) => v.trim());
         if (values.length >= 2 && values[0] && values[1]) {
           schemes.push({
             name: values[0],
             budget: parseFloat(values[1]) || 0,
-            district: values[2] || undefined
+            district: values[2] || undefined,
           });
         }
       }
-      
+
       return schemes;
     } catch (error) {
-      console.error('CSV parsing error:', error);
+      console.error("CSV parsing error:", error);
       return [];
     }
   };
 
-  const applyGapRecalculation = (next: AAPEntryData) => {
-    const calculatedGap = calculateFinancingGap(
-      next.estimatedCost,
-      next.apportionedBudget,
-      next.currentFYBudget
-    );
-
-    if (!userEnteredGap) {
-      setShowGapSuggestion(false);
-      return { ...next, financingGap: calculatedGap };
-    }
-
-    if (calculatedGap > 0 && calculatedGap !== next.financingGap) {
-      setSuggestedGap(calculatedGap);
-      setShowGapSuggestion(true);
-    } else {
-      setShowGapSuggestion(false);
-    }
-
-    return next;
-  };
-
   // Handle scheme selection
   const handleSchemeChange = (schemeName: string) => {
-    const selectedScheme = filteredSchemes.find(s => s.name === schemeName);
+    const selectedScheme = filteredSchemes.find((s) => s.name === schemeName);
     if (selectedScheme) {
-      setFormData(prev => applyGapRecalculation({
+      setFormData((prev) => ({
         ...prev,
         mappedScheme: schemeName,
-        currentFYBudget: selectedScheme.budget
+        currentFYBudget: selectedScheme.budget,
       }));
+      calculateFinancingGap(
+        formData.estimatedCost,
+        formData.apportionedBudget,
+        selectedScheme.budget,
+      );
     }
   };
 
@@ -297,12 +279,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const calculateFinancingGap = (
     estimatedCost: number,
     apportionedBudget: number,
-    currentBudget: number
+    currentBudget: number,
   ) => {
     let gap = 0;
 
     if (apportionedBudget > currentBudget) {
-      gap += (apportionedBudget - currentBudget);
+      gap += apportionedBudget - currentBudget;
     }
 
     if (estimatedCost > apportionedBudget) {
@@ -312,26 +294,59 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
     return gap;
   };
 
-  const handleBudgetFieldChange = (
-    field: 'estimatedCost' | 'apportionedBudget',
-    value: number
-  ) => {
-    setFormData(prev => {
-      const next = { ...prev, [field]: value };
-      return applyGapRecalculation(next);
-    });
+  // Handle estimated cost change
+  const handleEstimatedCostChange = (value: number) => {
+    setFormData((prev) => ({ ...prev, estimatedCost: value }));
+
+    const calculatedGap = calculateFinancingGap(
+      value,
+      formData.apportionedBudget,
+      formData.currentFYBudget,
+    );
+
+    if (!userEnteredGap && calculatedGap >= 0) {
+      setFormData((prev) => ({ ...prev, financingGap: calculatedGap }));
+    } else if (
+      userEnteredGap &&
+      calculatedGap !== formData.financingGap &&
+      calculatedGap > 0
+    ) {
+      setSuggestedGap(calculatedGap);
+      setShowGapSuggestion(true);
+    }
+  };
+
+  // Handle apportioned budget change
+  const handleApportionedBudgetChange = (value: number) => {
+    setFormData((prev) => ({ ...prev, apportionedBudget: value }));
+
+    const calculatedGap = calculateFinancingGap(
+      formData.estimatedCost,
+      value,
+      formData.currentFYBudget,
+    );
+
+    if (!userEnteredGap && calculatedGap >= 0) {
+      setFormData((prev) => ({ ...prev, financingGap: calculatedGap }));
+    } else if (
+      userEnteredGap &&
+      calculatedGap !== formData.financingGap &&
+      calculatedGap > 0
+    ) {
+      setSuggestedGap(calculatedGap);
+      setShowGapSuggestion(true);
+    }
   };
 
   // Handle financing gap change
   const handleFinancingGapChange = (value: number) => {
     setUserEnteredGap(true);
-    setShowGapSuggestion(false);
-    setFormData(prev => ({ ...prev, financingGap: value }));
+    setFormData((prev) => ({ ...prev, financingGap: value }));
   };
 
   // Accept suggested gap
   const acceptSuggestedGap = () => {
-    setFormData(prev => ({ ...prev, financingGap: suggestedGap }));
+    setFormData((prev) => ({ ...prev, financingGap: suggestedGap }));
     setShowGapSuggestion(false);
   };
 
@@ -339,13 +354,13 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const addPhysicalTarget = () => {
     const newTarget: PhysicalTarget = {
       id: Date.now().toString(),
-      objective: '',
+      objective: "",
       quantity: 0,
-      units: ''
+      units: "",
     };
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      physicalTargets: [...prev.physicalTargets, newTarget]
+      physicalTargets: [...prev.physicalTargets, newTarget],
     }));
   };
 
@@ -353,36 +368,38 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   const updatePhysicalTarget = (
     id: string,
     field: keyof PhysicalTarget,
-    value: PhysicalTarget[keyof PhysicalTarget]
+    value: any,
   ) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      physicalTargets: prev.physicalTargets.map(target =>
-        target.id === id ? { ...target, [field]: value } : target
-      )
+      physicalTargets: prev.physicalTargets.map((target) =>
+        target.id === id ? { ...target, [field]: value } : target,
+      ),
     }));
   };
 
   // Remove physical target
   const removePhysicalTarget = (id: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      physicalTargets: prev.physicalTargets.filter(target => target.id !== id)
+      physicalTargets: prev.physicalTargets.filter(
+        (target) => target.id !== id,
+      ),
     }));
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const submissionData = {
       ...formData,
       district: district,
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
 
-    console.log('Form submitted:', submissionData);
-    
+    console.log("Form submitted:", submissionData);
+
     // Add or update entry
     let updatedEntries: AAPEntryData[];
     if (editingIndex !== null) {
@@ -394,20 +411,34 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
       // Add new entry
       updatedEntries = [...savedEntries, formData];
     }
-    
+
     // Save to CSV
     const saved = await saveToCSV(updatedEntries);
-    
+
     if (saved) {
       setSavedEntries(updatedEntries);
-      
+
       // Reset form
-      setFormData(INITIAL_FORM_DATA);
+      setFormData({
+        subSector: "",
+        objective: "",
+        specificIntervention: "",
+        estimatedCost: 0,
+        mappedScheme: "",
+        currentFYBudget: 0,
+        apportionedBudget: 0,
+        financingGap: 0,
+        sourceOfFinancing: "",
+        physicalTargets: [],
+        employmentPotential: 0,
+      });
       setUserEnteredGap(false);
-      
-      alert(`Annual Action Plan entry ${editingIndex !== null ? 'updated' : 'saved'} successfully for ${district}!`);
+
+      alert(
+        `Annual Action Plan entry ${editingIndex !== null ? "updated" : "saved"} successfully for ${district}!`,
+      );
     }
-    
+
     if (onSubmit) {
       onSubmit(formData);
     }
@@ -419,18 +450,18 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
     setFormData(entry);
     setEditingIndex(index);
     setShowTableOverlay(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Delete entry
   const handleDelete = async (index: number) => {
-    if (!confirm('Are you sure you want to delete this entry?')) {
+    if (!confirm("Are you sure you want to delete this entry?")) {
       return;
     }
-    
+
     const updatedEntries = savedEntries.filter((_, i) => i !== index);
     const saved = await saveToCSV(updatedEntries);
-    
+
     if (saved) {
       setSavedEntries(updatedEntries);
       if (editingIndex === index) {
@@ -442,7 +473,19 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingIndex(null);
-    setFormData(INITIAL_FORM_DATA);
+    setFormData({
+      subSector: "",
+      objective: "",
+      specificIntervention: "",
+      estimatedCost: 0,
+      mappedScheme: "",
+      currentFYBudget: 0,
+      apportionedBudget: 0,
+      financingGap: 0,
+      sourceOfFinancing: "",
+      physicalTargets: [],
+      employmentPotential: 0,
+    });
   };
 
   return (
@@ -464,12 +507,16 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
             <select
               id="subSector"
               value={formData.subSector}
-              onChange={(e) => setField('subSector', e.target.value)}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, subSector: e.target.value }))
+              }
               required
             >
               <option value="">Select Economic Sector</option>
-              {ECONOMIC_SECTORS.map(sector => (
-                <option key={sector} value={sector}>{sector}</option>
+              {ECONOMIC_SECTORS.map((sector) => (
+                <option key={sector} value={sector}>
+                  {sector}
+                </option>
               ))}
             </select>
           </div>
@@ -481,7 +528,9 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
             <textarea
               id="objective"
               value={formData.objective}
-              onChange={(e) => setField('objective', e.target.value)}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, objective: e.target.value }))
+              }
               placeholder="Describe the objective of this intervention..."
               rows={4}
               required
@@ -498,7 +547,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
             type="text"
             id="specificIntervention"
             value={formData.specificIntervention}
-            onChange={(e) => setField('specificIntervention', e.target.value)}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                specificIntervention: e.target.value,
+              }))
+            }
             placeholder="Enter specific intervention details"
             required
           />
@@ -507,7 +561,7 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
         {/* Budget Section */}
         <div className="form-section">
           <h3>Budget Information</h3>
-          
+
           {/* Row: Estimated Cost, Mapped Scheme, Current Budget */}
           <div className="form-row-3col">
             <div className="form-group">
@@ -517,8 +571,10 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
               <input
                 type="number"
                 id="estimatedCost"
-                value={formData.estimatedCost || ''}
-                onChange={(e) => handleEstimatedCostChange(parseFloat(e.target.value) || 0)}
+                value={formData.estimatedCost || ""}
+                onChange={(e) =>
+                  handleEstimatedCostChange(parseFloat(e.target.value) || 0)
+                }
                 placeholder="0.00"
                 step="0.01"
                 min="0"
@@ -537,7 +593,7 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                 required
               >
                 <option value="">Select Scheme</option>
-                {filteredSchemes.map(scheme => (
+                {filteredSchemes.map((scheme) => (
                   <option key={scheme.name} value={scheme.name}>
                     {scheme.name}
                   </option>
@@ -552,7 +608,7 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
               <input
                 type="number"
                 id="currentFYBudget"
-                value={formData.currentFYBudget || ''}
+                value={formData.currentFYBudget || ""}
                 readOnly
                 className="readonly-field"
                 placeholder="Auto-populated"
@@ -569,8 +625,10 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
               <input
                 type="number"
                 id="apportionedBudget"
-                value={formData.apportionedBudget || ''}
-                onChange={(e) => handleApportionedBudgetChange(parseFloat(e.target.value) || 0)}
+                value={formData.apportionedBudget || ""}
+                onChange={(e) =>
+                  handleApportionedBudgetChange(parseFloat(e.target.value) || 0)
+                }
                 placeholder="0.00"
                 step="0.01"
                 min="0"
@@ -585,8 +643,10 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
               <input
                 type="number"
                 id="financingGap"
-                value={formData.financingGap || ''}
-                onChange={(e) => handleFinancingGapChange(parseFloat(e.target.value) || 0)}
+                value={formData.financingGap || ""}
+                onChange={(e) =>
+                  handleFinancingGapChange(parseFloat(e.target.value) || 0)
+                }
                 placeholder="0.00"
                 step="0.01"
                 min="0"
@@ -624,7 +684,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                 type="text"
                 id="sourceOfFinancing"
                 value={formData.sourceOfFinancing}
-                onChange={(e) => setFormData(prev => ({ ...prev, sourceOfFinancing: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    sourceOfFinancing: e.target.value,
+                  }))
+                }
                 placeholder="e.g., State Budget, Central"
                 required
               />
@@ -670,7 +735,13 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                       <input
                         type="text"
                         value={target.objective}
-                        onChange={(e) => updatePhysicalTarget(target.id, 'objective', e.target.value)}
+                        onChange={(e) =>
+                          updatePhysicalTarget(
+                            target.id,
+                            "objective",
+                            e.target.value,
+                          )
+                        }
                         placeholder="Target objective"
                         required
                       />
@@ -680,8 +751,14 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                       <label>Quantity</label>
                       <input
                         type="number"
-                        value={target.quantity || ''}
-                        onChange={(e) => updatePhysicalTarget(target.id, 'quantity', parseFloat(e.target.value) || 0)}
+                        value={target.quantity || ""}
+                        onChange={(e) =>
+                          updatePhysicalTarget(
+                            target.id,
+                            "quantity",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
                         placeholder="0"
                         min="0"
                         required
@@ -693,7 +770,13 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                       <input
                         type="text"
                         value={target.units}
-                        onChange={(e) => updatePhysicalTarget(target.id, 'units', e.target.value)}
+                        onChange={(e) =>
+                          updatePhysicalTarget(
+                            target.id,
+                            "units",
+                            e.target.value,
+                          )
+                        }
                         placeholder="e.g., hectares, units"
                         required
                       />
@@ -708,13 +791,19 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
         {/* Employment Potential */}
         <div className="form-group">
           <label htmlFor="employmentPotential">
-            Employment Potential (Number of Jobs) <span className="required">*</span>
+            Employment Potential (Number of Jobs){" "}
+            <span className="required">*</span>
           </label>
           <input
             type="number"
             id="employmentPotential"
-            value={formData.employmentPotential || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, employmentPotential: parseInt(e.target.value) || 0 }))}
+            value={formData.employmentPotential || ""}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                employmentPotential: parseInt(e.target.value) || 0,
+              }))
+            }
             placeholder="0"
             min="0"
             required
@@ -724,8 +813,8 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
         {/* Submit Button */}
         <div className="form-actions">
           {editingIndex !== null && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn-cancel-edit"
               onClick={handleCancelEdit}
             >
@@ -733,10 +822,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
             </button>
           )}
           <button type="submit" className="btn-submit">
-            {editingIndex !== null ? 'Update Entry' : 'Submit Annual Action Plan'}
+            {editingIndex !== null
+              ? "Update Entry"
+              : "Submit Annual Action Plan"}
           </button>
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn-view-table"
             onClick={() => setShowTableOverlay(true)}
           >
@@ -751,14 +842,14 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
           <div className="table-overlay-content">
             <div className="table-overlay-header">
               <h2>Annual Action Plan Entries - {district}</h2>
-              <button 
+              <button
                 className="btn-close-overlay"
                 onClick={() => setShowTableOverlay(false)}
               >
                 ×
               </button>
             </div>
-            
+
             {savedEntries.length === 0 ? (
               <div className="no-entries">
                 <p>No entries saved yet. Submit the form to add entries.</p>
@@ -780,14 +871,23 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                   </thead>
                   <tbody>
                     {savedEntries.map((entry, index) => (
-                      <tr key={index} className={editingIndex === index ? 'editing-row' : ''}>
+                      <tr
+                        key={index}
+                        className={editingIndex === index ? "editing-row" : ""}
+                      >
                         <td>{index + 1}</td>
                         <td>{entry.subSector}</td>
                         <td>{entry.specificIntervention}</td>
-                        <td className="text-right">{entry.estimatedCost.toFixed(2)}</td>
+                        <td className="text-right">
+                          {entry.estimatedCost.toFixed(2)}
+                        </td>
                         <td>{entry.mappedScheme}</td>
-                        <td className="text-right">{entry.financingGap.toFixed(2)}</td>
-                        <td className="text-center">{entry.employmentPotential}</td>
+                        <td className="text-right">
+                          {entry.financingGap.toFixed(2)}
+                        </td>
+                        <td className="text-center">
+                          {entry.employmentPotential}
+                        </td>
                         <td className="actions-cell">
                           <button
                             className="btn-edit-small"
@@ -810,10 +910,12 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
                 </table>
               </div>
             )}
-            
+
             <div className="table-overlay-footer">
-              <p className="total-entries">Total Entries: <strong>{savedEntries.length}</strong></p>
-              <button 
+              <p className="total-entries">
+                Total Entries: <strong>{savedEntries.length}</strong>
+              </p>
+              <button
                 className="btn-close"
                 onClick={() => setShowTableOverlay(false)}
               >
@@ -827,5 +929,4 @@ const AAPEntry: React.FC<Props> = ({ district, onSubmit }) => {
   );
 };
 
-export default AAPEntry;
-
+export default AAPDash;

@@ -4,7 +4,7 @@
 
 .MStride {
   display: grid;
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: auto 1fr; /* Sidebar + Content */
   gap: 24px;
   margin-top: 24px;
   padding-bottom: 5%;
@@ -20,7 +20,10 @@
   text-align: justify;
 }
 
-
+section{
+  padding-bottom: 20px;
+  border-bottom: #cdcdcd 1px solid;
+}
 /* ============================= */
 /* TITLE BANNER */
 /* ============================= */
@@ -163,13 +166,94 @@
   gap: 12px;
 }
 
-.DLI-Section {
-  display: flex;
-  flex-direction: Row;
-  gap: 12px;
+#DLI-Section {
+  margin-top: 32px;
 }
 
-.Download-Item, .DLI-Item {
+.DLI-Tabs-Row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.DLI-tab {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.DLI-tab:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.DLI-tab.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+/* Table Container */
+.Period-Table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  overflow-x: auto;
+}
+
+/* Table */
+.Period-Table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.Period-Table thead {
+  background: var(--bg-soft);
+}
+
+.Period-Table th,
+.Period-Table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.Period-Table th {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.Period-Table tr:hover {
+  background: var(--bg-soft);
+}
+/* Completed - Green Tint */
+.row-completed {
+  background-color: rgba(34, 197, 94, 0.08);
+}
+
+.row-completed:hover {
+  background-color: rgba(34, 197, 94, 0.15);
+}
+
+/* Off-Track - Red Tint */
+.row-offtrack {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.row-offtrack:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.Download-Item{
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -178,20 +262,6 @@
 }
 
 .Download-tab {
-  width: 100%;
-  text-align: left;
-  background: var(--bg-soft);
-  border: none;
-
-  padding: 14px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-main);
-
-  transition: all 0.2s ease;
-}
-
-.DLI-tab {
   width: 100%;
   text-align: left;
   background: var(--bg-soft);
@@ -214,7 +284,7 @@
   color: var(--primary);
 }
 
-.Download-tab.active, .DLI-tab.active {
+.Download-tab.active{
   background: var(--primary);
   color: #ffffff;
 }
@@ -224,17 +294,17 @@
 }
 
 /* Table */
-.Download-GR table, .Period-Table table {
+.Download-GR table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
 
-.Download-GR thead, .Period-Table thead {
+.Download-GR thead {
   background: var(--bg-soft);
 }
 
-.Download-GR th, .Period-Table th {
+.Download-GR th {
   font-weight: 600;
   color: var(--text-main);
 }

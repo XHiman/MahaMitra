@@ -1,29 +1,37 @@
-import './App.css'
-import Navbar from './components/Navbar'
-import HomePage from './pages/Home'
+import "./App.css";
+import Navbar from "./components/Navbar";
+import HomePage from "./pages/Home";
 //import DistrictPage from './components/districtPages/Districts'
-import { Route, Routes } from 'react-router'
-import UtilityBar from './components/UtilityBar'
-import MSride from './pages/Initiatives/MahaSTRIDE'
-import Footer from './components/Footer'
-import AAPDash from './components/AAP/AAPDash'
+import { Route, Routes } from "react-router";
+import UtilityBar from "./components/UtilityBar";
+import MSride from "./pages/Initiatives/MahaSTRIDE";
+import Footer from "./components/Footer";
+import ScrollToAnchor from "./components/ScrollToAnchor";
+import DistrictPage from "./components/districtPages/Districts";
+import AAPDash from "./components/AAP/AAPEntry";
+import AAPDashboard from "./components/AAP/AAPDash";
 
 function App() {
-
   return (
-    <div className="AppDiv">  
-      <UtilityBar/>
-      <Navbar/>
-      <div className="AppBody">
+    <div className="AppDiv" id="ToPageTop">
+      <UtilityBar />
+      <Navbar />
+      <ScrollToAnchor />
+      <section className="AppBody">
         <Routes>
-          <Route index element={<HomePage/>}/>
-          <Route path='/Annual-Action-Plan' element={<AAPDash/>}/>
-          <Route path='/mahastride' element={<MSride/>}/>
+          <Route index element={<HomePage />} />
+          <Route
+            path="/Annual-Action-Plan"
+            element={<AAPDash district="Nashik" />}
+          />
+          <Route path="/AAP-Dashboard" element={<AAPDashboard />} />
+          <Route path="/mahastride" element={<MSride />} />
+          <Route path="/districts" element={<DistrictPage />} />
         </Routes>
-      </div>
-      <Footer/>
+      </section>
+      <Footer />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

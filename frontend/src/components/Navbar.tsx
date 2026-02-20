@@ -1,14 +1,14 @@
-import { Link, useLocation } from "react-router-dom"
-import "./Navbar.css"
+import { Link, useLocation } from "react-router-dom";
+import "./Navbar.css";
 
 function Navbar() {
-  const location = useLocation()
-  const path = location.pathname
+  const location = useLocation();
+  const path = location.pathname;
 
-  const isActive = (routes: string[]) => 
-    routes.some(route => path.startsWith(route))
+  const isActive = (routes: string[]) =>
+    routes.some((route) => path.startsWith(route));
 
-  const isExactHome = path === "/"
+  const isExactHome = path === "/";
 
   return (
     <nav className="Navbar" role="navigation">
@@ -17,7 +17,9 @@ function Navbar() {
           <Link to="">Home</Link>
         </li>
 
-        <li className={`hasDropdown ${isActive(["/about-us"]) ? "active" : ""}`}>
+        <li
+          className={`hasDropdown ${isActive(["/about-us"]) ? "active" : ""}`}
+        >
           <Link to="/about-us">About Department</Link>
           <div className="dropdown">
             <Link to="/about-us/introduction">Introduction</Link>
@@ -31,14 +33,16 @@ function Navbar() {
           <Link to="/districts">Districts</Link>
         </li>
 
-        <li className={`hasDropdown ${isActive(["/initiatives"]) ? "active" : ""}`}>
+        <li
+          className={`hasDropdown ${isActive(["/initiatives"]) ? "active" : ""}`}
+        >
           <Link to="/initiatives">Initiatives</Link>
-            <div className="dropdown">
-              <Link to="/mahastride">MahaSTRIDE</Link>
-              <Link to="/mrdp">MRDP</Link>
-              <Link to="/muwrep">MUWREP</Link>
-              <Link to="/shore">Shore</Link>
-            </div>
+          <div className="dropdown">
+            <Link to="/mahastride">MahaSTRIDE</Link>
+            <Link to="/mrdp">MRDP</Link>
+            <Link to="/muwrep">MUWREP</Link>
+            <Link to="/shore">Shore</Link>
+          </div>
         </li>
 
         <li className={isActive(["/publications"]) ? "active" : ""}>
@@ -57,15 +61,20 @@ function Navbar() {
           <Link to="/contact-us">Contact</Link>
         </li>
       </ul>
-      <div className="hmenu">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+      {/* <div className="hmenu">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+        >
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
-      </div>
+      </div> */}
     </nav>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

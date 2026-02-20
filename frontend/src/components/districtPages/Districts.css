@@ -1,0 +1,124 @@
+.district-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.district-label {
+  font-size: 3rem;
+  font-weight: 700;
+  padding-right: 2rem;
+  pointer-events: none;
+}
+
+.district-wrapper::after {
+  content: "▾";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.6;
+}
+
+/* Invisible but functional select */
+.district-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+
+.JalgaonPage {
+    display: grid;
+    grid-template-columns: 1.4fr 1.6fr; /* left info | right chart */
+    grid-template-rows: auto auto;
+    gap: 24px;
+    padding: 24px;
+    align-items: start;
+}
+
+/* Left column container */
+.LeftSection {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 24px;
+}
+
+/* District map/image */
+.DistrictPhoto {
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+    max-height: 250px;
+    margin: 0 auto;
+}
+
+/* Summary stats under map */
+.Summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    text-align: center;
+}
+
+.DistrictInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+.Summary h3 {
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+.Summary p {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Right-side main chart */
+.RightSection {
+    grid-row: 1 / span 2; /* makes it span vertically */
+}
+
+/* If you still need this */
+.district_image {
+    justify-self: center;
+    grid-column: 1/ span 3;
+}
+
+.InitiativesSection {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.InitiativesSection table {
+    border-collapse: collapse;
+    margin: 0 20px 20px 20px;
+}
+
+.InitiativesSection th, .InitiativesSection td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    .JalgaonPage {
+        grid-template-columns: 1fr;
+    }
+
+    .RightSection {
+        grid-row: auto;
+    }
+
+    .Summary {
+        grid-template-columns: 1fr;
+    }
+}
