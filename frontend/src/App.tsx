@@ -10,13 +10,14 @@ import ScrollToAnchor from "./components/ScrollToAnchor";
 import DistrictPage from "./components/districtPages/Districts";
 import AAPDash from "./components/AAP/AAPEntry";
 import AAPDashboard from "./components/AAP/AAPDash";
+import SDGMain from "./components/SDG/SDGMain";
 
 function App() {
   return (
     <div className="AppDiv" id="ToPageTop">
-      <UtilityBar />
+      {/* <UtilityBar />
       <Navbar />
-      <ScrollToAnchor />
+      <ScrollToAnchor /> */}
       <section className="AppBody">
         <Routes>
           <Route index element={<HomePage />} />
@@ -27,6 +28,7 @@ function App() {
           <Route path="/AAP-Dashboard" element={<AAPDashboard />} />
           <Route path="/mahastride" element={<MSride />} />
           <Route path="/districts" element={<DistrictPage />} />
+          <Route path="/sdg" element={<SDGMain />} />
         </Routes>
       </section>
       <Footer />

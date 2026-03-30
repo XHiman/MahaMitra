@@ -14,24 +14,6 @@ interface DLIItem {
 const images = ["/MahaSTRIDE_Banner.png"];
 
 function MSride() {
-  const handleDownload = async (fileUrl: string, title: string) => {
-    try {
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${title}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download failed:", error);
-    }
-  };
   const tabs = [
     "Government Documents",
     "Project Documents",

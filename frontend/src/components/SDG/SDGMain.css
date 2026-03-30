@@ -1,0 +1,474 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   SDGMain.css
+   Companion stylesheet for SDGMain.tsx.
+   Import path assumed: same directory as SDGMain.tsx.
+   Google Fonts (Barlow Condensed + Barlow) are expected to be loaded globally
+   in your index.html or global CSS:
+     https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Root page wrapper ────────────────────────────────────────────────────── */
+.sdg-main {
+  font-family: 'Barlow', sans-serif;
+  min-height: 100vh;
+  background: #f2efea;
+  padding: 40px 20px 80px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CARDS GRID VIEW
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Page header */
+.sdg-main-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.sdg-main-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #111;
+  margin: 0;
+}
+.sdg-main-sub {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+/* Grid */
+.sdgcards {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 10px;
+  margin: 0 auto;
+}
+@media (max-width: 680px) {
+  .sdgcards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+
+/* ── Individual card ──────────────────────────────────────────────────────── */
+.sdg-card {
+  background: var(--sdg-color, #aaa);
+  border-radius: 5px;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  outline: none;
+  transition:
+    transform  0.18s cubic-bezier(.34, 1.56, .64, 1),
+    box-shadow 0.18s ease;
+}
+.sdg-card:hover,
+.sdg-card:focus-visible {
+  transform: scale(1.05) translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.26);
+  z-index: 2;
+}
+/* Top-left gloss sheen */
+.sdg-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.sdg-card-inner {
+  width: 100%;
+  height: 100%;
+  padding: 9px 9px 7px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Number + name */
+.sdg-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sdg-card-number {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(1.5rem, 4.1vw, 2rem);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.sdg-card-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(0.43rem, 1.2vw, 0.65rem);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.045em;
+  line-height: 1.22;
+  max-width: 88%;
+}
+
+/* Icon */
+.sdg-card-icon {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px 2px;
+}
+.sdg-card-icon img {
+  width: 100%;
+  height: 100%;
+  max-width: 64px;
+  max-height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.18));
+  /* Icons in public/ are white SVGs — keep as-is. */
+}
+
+/* Indicator count */
+.sdg-card-footer {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: auto;
+}
+.sdg-card-count {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(0.92rem, 2.5vw, 1.3rem);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+.sdg-card-count-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(0.37rem, 0.98vw, 0.55rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Skeleton */
+.sdg-card--skeleton {
+  cursor: default;
+  background: #ddd !important;
+  animation: sdg-pulse 1.4s ease-in-out infinite;
+}
+.sdg-card--skeleton::before { display: none; }
+@keyframes sdg-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* Error banner */
+.sdg-error {
+  grid-column: 1 / -1;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 20px 24px;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sdg-error strong { font-size: 1rem; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DETAIL VIEW
+───────────────────────────────────────────────────────────────────────────── */
+
+.sdg-detail {
+  max-width: 940px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Pill nav ─────────────────────────────────────────────────────────────── */
+.sdg-pill-nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE */
+  scroll-behavior: smooth;
+}
+.sdg-pill-nav::-webkit-scrollbar { display: none; }
+
+.sdg-pill {
+  flex-shrink: 0;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background: #e8e4de;
+  color: #555;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    color      0.14s ease,
+    border-color 0.14s ease,
+    transform  0.12s ease;
+}
+.sdg-pill:hover {
+  background: var(--pill-color, #888);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.sdg-pill--active {
+  background: var(--pill-color, #888);
+  color: #fff;
+  border-color: rgba(0,0,0,0.12);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.sdg-detail-hero {
+  background: var(--hero-color, #555);
+  border-radius: 10px;
+  padding: 24px 28px 28px;
+  position: relative;
+  overflow: hidden;
+}
+/* Gloss sheen matching the cards */
+.sdg-detail-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, rgba(255,255,255,0.13) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Back button */
+.sdg-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 100px;
+  padding: 5px 14px 5px 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background 0.14s ease, transform 0.12s ease;
+}
+.sdg-back-btn:hover {
+  background: rgba(255,255,255,0.32);
+  transform: translateX(-2px);
+}
+
+.sdg-detail-hero-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+/* Icon in hero */
+.sdg-detail-hero-icon {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.sdg-detail-hero-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+}
+
+/* Text block */
+.sdg-detail-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+.sdg-detail-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  margin: 0 0 4px;
+}
+.sdg-detail-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  margin: 0 0 10px;
+}
+.sdg-detail-desc {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.88);
+  margin: 0;
+  max-width: 560px;
+}
+
+@media (max-width: 520px) {
+  .sdg-detail-hero-body { flex-direction: column; gap: 16px; }
+  .sdg-detail-hero-icon { width: 60px; height: 60px; }
+}
+
+/* ── Stats + filter bar ───────────────────────────────────────────────────── */
+.sdg-detail-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 24px;
+  margin-top: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* Stat block */
+.sdg-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+.sdg-stat-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  /* color set inline from card.color */
+}
+.sdg-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #999;
+}
+
+/* Vertical divider */
+.sdg-bar-divider {
+  width: 1px;
+  height: 40px;
+  background: #e8e4de;
+  flex-shrink: 0;
+}
+
+/* Filter group */
+.sdg-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+.sdg-filter-label {
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaa;
+}
+
+/* Select wrapper */
+.sdg-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.sdg-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #f4f1ec;
+  border: 1.5px solid #e0dbd3;
+  border-radius: 7px;
+  padding: 7px 30px 7px 11px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #222;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.sdg-select:focus {
+  outline: none;
+  border-color: #aaa;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+}
+.sdg-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sdg-select-chevron {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  color: #888;
+}
+
+/* Location chips */
+.sdg-location-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.sdg-chip {
+  background: #f4f1ec;
+  border: 1px solid #e0dbd3;
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0.03em;
+}
+
+/* ── Content area ─────────────────────────────────────────────────────────── */
+.sdg-detail-content {
+  background: #fff;
+  border-radius: 10px;
+  padding: 28px 24px;
+  margin-top: 10px;
+  min-height: 320px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.sdg-content-hint {
+  font-size: 0.82rem;
+  color: #aaa;
+  margin-bottom: 24px;
+}
+.sdg-content-hint strong {
+  color: #444;
+  font-weight: 600;
+}
