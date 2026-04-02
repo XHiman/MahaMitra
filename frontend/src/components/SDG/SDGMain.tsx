@@ -159,7 +159,7 @@ const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
           onClick={() => onSelect(c.id as SDGNumber)}
           title={`SDG ${c.id}: ${c.name}`}
         >
-          {/* {c.id} */}
+          <p>{c.id}</p>
           <img
             src={`/icons/sdg/${c.iconKey}.svg`}
             alt=""
