@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef, type FC } from "react";
-import type { SDGCardModel, SDGNumber } from "../types/SDG.types";
-import { fetchSDGDataset, deriveCardModels } from "../services/fetchSdgData";
+import { useState, useEffect, useRef, useMemo, type FC } from "react";
+import type { SDGCardModel, SDGDataset, SDGNumber } from "../types/SDG.types";
+import {
+  fetchSDGDataset,
+  deriveCardModels,
+  queryGoalData,
+} from "../services/fetchSdgData";
+import GraphSdg from "./GraphSdg";
 import "./SDGMain.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,13 +32,39 @@ const SDG_DESCRIPTIONS: Record<number, string> = {
   17: "Strengthen the means of implementation and revitalize the global partnership for sustainable development.",
 };
 
-// Districts present in the dataset → their talukas.
-// Extend this map as your DB/CSV grows.
-const DISTRICT_TALUKAS: Record<string, string[]> = {
-  Wardha: ["Wardha", "Arvi"],
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER — build District → Taluka map from the live dataset
+// ─────────────────────────────────────────────────────────────────────────────
 
-const ALL_DISTRICTS = Object.keys(DISTRICT_TALUKAS);
+/**
+ * Derive { district: taluka[] } from the loaded SDGDataset.
+ * District rows have level="District"; Taluka rows have level="Taluka".
+ * We collect all distinct District geographies as keys, then all Taluka
+ * geographies as the values (alphabetically sorted).
+ *
+ * In the current CSV there is one district (Wardha) with two talukas
+ * (Wardha, Arvi), but this will adapt automatically as the data grows.
+ */
+function buildDistrictTalukaMap(dataset: SDGDataset): Record<string, string[]> {
+  const districts = new Set<string>();
+  const talukas = new Set<string>();
+
+  for (const goal of dataset.values()) {
+    for (const dp of goal.dataPoints) {
+      if (dp.level === "District") districts.add(dp.geography);
+      if (dp.level === "Taluka") talukas.add(dp.geography);
+    }
+  }
+
+  // Map every district to the full set of talukas.
+  // (If the data ever has per-district taluka lists, refine here.)
+  const talukaList = [...talukas].sort();
+  const map: Record<string, string[]> = {};
+  for (const d of districts) {
+    map[d] = talukaList;
+  }
+  return map;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDG CARD
@@ -141,13 +172,24 @@ const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
 
 interface SDGDetailProps {
   cards: SDGCardModel[];
+  dataset: SDGDataset;
+  districtTalukaMap: Record<string, string[]>;
   initialId: SDGNumber;
   onBack: () => void;
 }
 
-const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
+const SDGDetail: FC<SDGDetailProps> = ({
+  cards,
+  dataset,
+  districtTalukaMap,
+  initialId,
+  onBack,
+}) => {
   const [activeId, setActiveId] = useState<SDGNumber>(initialId);
-  const [district, setDistrict] = useState<string>(ALL_DISTRICTS[0] ?? "");
+
+  const allDistricts = Object.keys(districtTalukaMap);
+  const [district, setDistrict] = useState<string>(allDistricts[0] ?? "");
+  // "" means "All" → show district-level data
   const [taluka, setTaluka] = useState<string>("");
 
   // Reset taluka whenever district changes
@@ -156,8 +198,26 @@ const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
   }, [district]);
 
   const card = cards.find((c) => c.id === activeId);
-  const talukas = DISTRICT_TALUKAS[district] ?? [];
+  const talukas = districtTalukaMap[district] ?? [];
   const description = SDG_DESCRIPTIONS[activeId] ?? "";
+
+  // Derive filtered data points for GraphSdg.
+  // "All" taluka (taluka === "") → show district-level rows for the selected district.
+  // Specific taluka selected        → show taluka-level rows for that geography.
+  const filteredPoints = useMemo(() => {
+    if (!card) return [];
+    if (taluka === "") {
+      // All talukas → district aggregate
+      return queryGoalData(dataset, activeId, {
+        geography: district,
+        level: "District",
+      });
+    }
+    return queryGoalData(dataset, activeId, {
+      geography: taluka,
+      level: "Taluka",
+    });
+  }, [dataset, activeId, district, taluka, card]);
 
   if (!card) return null;
 
@@ -239,7 +299,7 @@ const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
             >
-              {ALL_DISTRICTS.map((d) => (
+              {allDistricts.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -262,7 +322,8 @@ const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
               onChange={(e) => setTaluka(e.target.value)}
               disabled={talukas.length === 0}
             >
-              <option value="">All Talukas</option>
+              {/* "All" shows district-level aggregate data */}
+              <option value="">All</option>
               {talukas.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -291,13 +352,13 @@ const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
         )}
       </div>
 
-      {/* ── 4. Content area (drop charts / tables here) ──────────────────── */}
+      {/* ── 4. Content area ──────────────────────────────────────────────── */}
       <div className="sdg-detail-content">
         <p className="sdg-content-hint">
           Showing data for{" "}
           <strong>
             {district}
-            {taluka ? ` › ${taluka}` : ""}
+            {taluka ? ` › ${taluka}` : " (District)"}
           </strong>
           {card.yearRange && (
             <>
@@ -306,8 +367,8 @@ const SDGDetail: FC<SDGDetailProps> = ({ cards, initialId, onBack }) => {
             </>
           )}
         </p>
-        {/* TODO: mount your indicator charts/table component here,
-            passing { sdgId: activeId, district, taluka } as props */}
+
+        <GraphSdg sdgId={activeId} dataPoints={filteredPoints} />
       </div>
     </section>
   );
@@ -336,17 +397,25 @@ const ChevronIcon: FC = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SDGMain: FC = () => {
+  const [dataset, setDataset] = useState<SDGDataset>(new Map());
   const [cards, setCards] = useState<SDGCardModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSDG, setActiveSDG] = useState<SDGNumber | null>(null);
 
+  // Derived once after data loads — District → Taluka[] map from the CSV
+  const districtTalukaMap = useMemo(
+    () => buildDistrictTalukaMap(dataset),
+    [dataset],
+  );
+
   useEffect(() => {
     let cancelled = false;
     fetchSDGDataset()
-      .then((dataset) => {
+      .then((ds) => {
         if (cancelled) return;
-        setCards(deriveCardModels(dataset));
+        setDataset(ds);
+        setCards(deriveCardModels(ds));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -367,6 +436,8 @@ const SDGMain: FC = () => {
       <main className="sdg-main">
         <SDGDetail
           cards={cards}
+          dataset={dataset}
+          districtTalukaMap={districtTalukaMap}
           initialId={activeSDG}
           onBack={() => setActiveSDG(null)}
         />
@@ -394,7 +465,7 @@ const SDGMain: FC = () => {
 
         {loading &&
           !error &&
-          Array.from({ length: 16 }, (_, i) => <SkeletonCard key={i} />)}
+          Array.from({ length: 17 }, (_, i) => <SkeletonCard key={i} />)}
 
         {!loading &&
           !error &&

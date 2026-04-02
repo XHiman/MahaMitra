@@ -1,4 +1,9 @@
-import type { SDGDataset, SDGCardModel, SDGNumber, SDGGoalData } from "../types/SDG.types";
+import type {
+  SDGDataset,
+  SDGCardModel,
+  SDGNumber,
+  SDGGoalData,
+} from "../types/SDG.types";
 import { parseSDGCsv, buildSDGDataset } from "./sdgCsvParser";
 
 // ─── DATA SOURCE CONFIGURATION ────────────────────────────────────────────────
@@ -6,14 +11,14 @@ import { parseSDGCsv, buildSDGDataset } from "./sdgCsvParser";
 // of `fetchRawRows` below. The rest of this module is source-agnostic.
 
 /** Path to the CSV file when running in a local / Vite dev environment. */
-const CSV_PATH = "/data/sdg_data_full.csv";
+const CSV_PATH = "/data/Master_SDG.csv";
 
 // ─── DB-READY FETCH LAYER ─────────────────────────────────────────────────────
 
 /**
  * Primary data-fetch function.
  *
- * CURRENT:  reads the bundled CSV file.
+ * CURRENT:  reads the bundled CSV file (Master_SDG.csv).
  * TO SWITCH TO DB:  replace `fetchFromCSV` with `fetchFromDB` below, or with
  * your own API call.  The returned `SDGDataset` shape stays identical, so no
  * downstream components need changes.
@@ -29,7 +34,7 @@ async function fetchFromCSV(path: string) {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(
-      `Failed to load SDG CSV from "${path}": ${response.status} ${response.statusText}`
+      `Failed to load SDG CSV from "${path}": ${response.status} ${response.statusText}`,
     );
   }
   const text = await response.text();
@@ -60,15 +65,18 @@ export function deriveCardModels(dataset: SDGDataset): SDGCardModel[] {
   return allIds.map((id) => {
     const goal = dataset.get(id) as SDGGoalData;
     const years = goal.dataPoints.map((d) => d.year);
-    const locations = [...new Set(goal.dataPoints.map((d) => d.location))];
+    const locations = [...new Set(goal.dataPoints.map((d) => d.geography))];
+    const levels = [...new Set(goal.dataPoints.map((d) => d.level))];
 
     return {
       id,
       name: goal.meta.name,
       color: goal.meta.color,
       iconKey: goal.meta.iconKey,
+      // indicatorCount = distinct metric names (unique data series) for this goal
       indicatorCount: goal.indicatorNames.length,
       locations,
+      levels,
       yearRange:
         years.length > 0
           ? { min: Math.min(...years), max: Math.max(...years) }
@@ -80,24 +88,36 @@ export function deriveCardModels(dataset: SDGDataset): SDGCardModel[] {
 // ─── CONVENIENCE: SINGLE-GOAL LOOKUP ─────────────────────────────────────────
 
 /**
- * Return all data points for a specific SDG, optionally filtered by location
- * and/or indicator name.
+ * Return all data points for a specific SDG, optionally filtered by geography,
+ * level, indicator code, and/or metric name.
  */
 export function queryGoalData(
   dataset: SDGDataset,
   sdgId: SDGNumber,
-  opts?: { location?: string; indicator?: string; projectedOnly?: boolean }
+  opts?: {
+    geography?: string;
+    level?: string;
+    indicatorCode?: string;
+    metricName?: string;
+    projectedOnly?: boolean;
+  },
 ) {
   const goal = dataset.get(sdgId);
   if (!goal) return [];
 
   let points = goal.dataPoints;
 
-  if (opts?.location) {
-    points = points.filter((p) => p.location === opts.location);
+  if (opts?.geography) {
+    points = points.filter((p) => p.geography === opts.geography);
   }
-  if (opts?.indicator) {
-    points = points.filter((p) => p.indicator === opts.indicator);
+  if (opts?.level) {
+    points = points.filter((p) => p.level === opts.level);
+  }
+  if (opts?.indicatorCode) {
+    points = points.filter((p) => p.indicatorCode === opts.indicatorCode);
+  }
+  if (opts?.metricName) {
+    points = points.filter((p) => p.metricName === opts.metricName);
   }
   if (opts?.projectedOnly) {
     points = points.filter((p) => p.isProjected);
