@@ -203,21 +203,29 @@ const SDGDetail: FC<SDGDetailProps> = ({
 
   // Derive filtered data points for GraphSdg.
   // "All" taluka (taluka === "") → show district-level rows for the selected district.
-  // Specific taluka selected        → show taluka-level rows for that geography.
+  // Specific taluka selected     → show taluka-level rows for that taluka geography.
+  //
+  // FIX: When a taluka is selected, query by geography=taluka (the taluka's own
+  // name) with level="Taluka". Talukas like "Arvi" have their own geography
+  // string in the CSV — they are NOT nested under the district geography string.
   const filteredPoints = useMemo(() => {
     if (!card) return [];
     if (taluka === "") {
-      // All talukas → district aggregate
+      // All → district aggregate
       return queryGoalData(dataset, activeId, {
         geography: district,
         level: "District",
       });
     }
+    // Specific taluka — geography in the CSV is the taluka name itself (e.g. "Arvi")
     return queryGoalData(dataset, activeId, {
       geography: taluka,
       level: "Taluka",
     });
   }, [dataset, activeId, district, taluka, card]);
+
+  // Human-readable label for the GraphSdg empty state
+  const geographyLabel = taluka ? `Taluka ${taluka}` : `${district} District`;
 
   if (!card) return null;
 
@@ -243,7 +251,7 @@ const SDGDetail: FC<SDGDetailProps> = ({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -360,15 +368,13 @@ const SDGDetail: FC<SDGDetailProps> = ({
             {district}
             {taluka ? ` › ${taluka}` : " (District)"}
           </strong>
-          {card.yearRange && (
-            <>
-              {" "}
-              &nbsp;·&nbsp; {card.yearRange.min}–{card.yearRange.max}
-            </>
-          )}
         </p>
 
-        <GraphSdg sdgId={activeId} dataPoints={filteredPoints} />
+        <GraphSdg
+          sdgId={activeId}
+          dataPoints={filteredPoints}
+          geography={geographyLabel}
+        />
       </div>
     </section>
   );

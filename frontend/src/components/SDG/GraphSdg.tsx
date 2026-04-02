@@ -10,135 +10,82 @@ import type { SDGDataPoint, SDGNumber } from "../types/SDG.types";
 import "./GraphSdg.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SDG COLOUR THEMES  —  one pastel palette per goal
-// Each theme: bg strip tint, actual-line colour, projected-line colour, dot fill
+// OFFICIAL SDG COLOURS  (UN canonical hex, one per goal)
+// Used as the "actual" line / dot accent. Projected and bg are derived.
 // ─────────────────────────────────────────────────────────────────────────────
-const SDG_THEMES: Record<
-  number,
-  { bg: string; actual: string; projected: string; dot: string; muted: string }
-> = {
-  1: {
-    bg: "#fff0f1",
-    actual: "#e07a87",
-    projected: "#f4b8c0",
-    dot: "#e07a87",
-    muted: "#f9d6da",
-  },
-  2: {
-    bg: "#fffaf0",
-    actual: "#c9963a",
-    projected: "#e8c882",
-    dot: "#c9963a",
-    muted: "#f5e4be",
-  },
-  3: {
-    bg: "#f2fbf0",
-    actual: "#5a9e50",
-    projected: "#a8d4a2",
-    dot: "#5a9e50",
-    muted: "#ceebc9",
-  },
-  4: {
-    bg: "#fff2f2",
-    actual: "#c0404e",
-    projected: "#e89ca4",
-    dot: "#c0404e",
-    muted: "#f5c8cc",
-  },
-  5: {
-    bg: "#fff3f0",
-    actual: "#d9614f",
-    projected: "#f0a898",
-    dot: "#d9614f",
-    muted: "#f9d3cc",
-  },
-  6: {
-    bg: "#f0fbff",
-    actual: "#3da0c7",
-    projected: "#93d0e8",
-    dot: "#3da0c7",
-    muted: "#bfe8f5",
-  },
-  7: {
-    bg: "#fffdf0",
-    actual: "#c9a82a",
-    projected: "#e6d07a",
-    dot: "#c9a82a",
-    muted: "#f5eaae",
-  },
-  8: {
-    bg: "#fff0f5",
-    actual: "#9e3058",
-    projected: "#d48fa8",
-    dot: "#9e3058",
-    muted: "#f2cdd9",
-  },
-  9: {
-    bg: "#fff6f0",
-    actual: "#d4682a",
-    projected: "#f0b080",
-    dot: "#d4682a",
-    muted: "#f8d9be",
-  },
-  10: {
-    bg: "#fff0f8",
-    actual: "#c03070",
-    projected: "#e898c0",
-    dot: "#c03070",
-    muted: "#f5cce4",
-  },
-  11: {
-    bg: "#fff8f0",
-    actual: "#cc8030",
-    projected: "#e8bc82",
-    dot: "#cc8030",
-    muted: "#f5e0c0",
-  },
-  12: {
-    bg: "#fdf8f0",
-    actual: "#9e7830",
-    projected: "#d4b87a",
-    dot: "#9e7830",
-    muted: "#f0e0ba",
-  },
-  13: {
-    bg: "#f0f8f2",
-    actual: "#3a7840",
-    projected: "#88c090",
-    dot: "#3a7840",
-    muted: "#bcdfc2",
-  },
-  14: {
-    bg: "#f0f8ff",
-    actual: "#2888c8",
-    projected: "#80c0e8",
-    dot: "#2888c8",
-    muted: "#b8ddf5",
-  },
-  15: {
-    bg: "#f2faf0",
-    actual: "#5aaa40",
-    projected: "#a0d890",
-    dot: "#5aaa40",
-    muted: "#ccebc0",
-  },
-  16: {
-    bg: "#f0f6ff",
-    actual: "#2870a8",
-    projected: "#7ab0d8",
-    dot: "#2870a8",
-    muted: "#b8d4f0",
-  },
-  17: {
-    bg: "#f0f4f8",
-    actual: "#2a5070",
-    projected: "#7aa0b8",
-    dot: "#2a5070",
-    muted: "#b8cedc",
-  },
+const SDG_COLORS: Record<number, string> = {
+  1: "#E5243B",
+  2: "#DDA63A",
+  3: "#4C9F38",
+  4: "#C5192D",
+  5: "#FF3A21",
+  6: "#26BDE2",
+  7: "#FCC30B",
+  8: "#A21942",
+  9: "#FD6925",
+  10: "#DD1367",
+  11: "#FD9D24",
+  12: "#BF8B2E",
+  13: "#3F7E44",
+  14: "#0A97D9",
+  15: "#56C02B",
+  16: "#00689D",
+  17: "#19486A",
 };
 
-const DEFAULT_THEME = SDG_THEMES[1]!;
+// ─────────────────────────────────────────────────────────────────────────────
+// THEME FACTORY
+// Builds a full theme from a single canonical SDG colour.
+// bg  = very light tint (5 % opacity on white)
+// actual = the canonical colour itself
+// projected = the canonical colour at 55 % opacity blended to white
+// dot = same as actual
+// muted = canonical colour at 15 % opacity (grid lines)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Convert a 6-digit hex to [r, g, b] (0-255). */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+/** Blend colour toward white by (1-alpha). */
+function blendToWhite(r: number, g: number, b: number, alpha: number): string {
+  const mix = (c: number) => Math.round(c * alpha + 255 * (1 - alpha));
+  return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+}
+
+interface SDGTheme {
+  bg: string;
+  actual: string;
+  projected: string;
+  dot: string;
+  muted: string;
+}
+
+const themeCache = new Map<number, SDGTheme>();
+
+function getTheme(sdgId: number): SDGTheme {
+  if (themeCache.has(sdgId)) return themeCache.get(sdgId)!;
+
+  const hex = SDG_COLORS[sdgId] ?? "#888888";
+  const [r, g, b] = hexToRgb(hex);
+
+  const theme: SDGTheme = {
+    bg: "#ffffff", // very faint tint for card bg
+    actual: hex, // full canonical colour
+    projected: blendToWhite(r, g, b, 0.55), // muted for dashed projection
+    dot: hex,
+    muted: blendToWhite(r, g, b, 0.18), // subtle grid lines
+  };
+
+  themeCache.set(sdgId, theme);
+  return theme;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HIGHLIGHT YEARS
@@ -198,7 +145,7 @@ function fmtVal(v: number): string {
 interface ChartSvgProps {
   series: SeriesPoint[];
   unit: string | null;
-  theme: (typeof SDG_THEMES)[number];
+  theme: SDGTheme;
   animated: boolean;
 }
 
@@ -267,6 +214,10 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
 
   const totalLen = 600; // rough path length for stroke-dasharray animation
 
+  // Stable gradient IDs derived from sdgId embedded in theme colour
+  const actualGradId = `ag-${theme.actual.replace("#", "")}`;
+  const projGradId = `pg-${theme.projected.replace(/[^a-z0-9]/gi, "")}`;
+
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -276,24 +227,12 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
     >
       <defs>
         {/* Actual area gradient */}
-        <linearGradient
-          id={`ag-${theme.actual.replace("#", "")}`}
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="1"
-        >
+        <linearGradient id={actualGradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={theme.actual} stopOpacity="0.18" />
           <stop offset="100%" stopColor={theme.actual} stopOpacity="0.02" />
         </linearGradient>
         {/* Projected area gradient */}
-        <linearGradient
-          id={`pg-${theme.projected.replace("#", "")}`}
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="1"
-        >
+        <linearGradient id={projGradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={theme.projected} stopOpacity="0.14" />
           <stop offset="100%" stopColor={theme.projected} stopOpacity="0.01" />
         </linearGradient>
@@ -321,28 +260,29 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
             y1={t.y.toFixed(1)}
             x2={INNER_W}
             y2={t.y.toFixed(1)}
-            stroke={theme.muted}
-            strokeWidth="1"
+            stroke="#E6E8EB"
+            strokeWidth="0.8"
+            opacity="0.6"
           />
         ))}
 
         {/* Projected fill area */}
-        {projectedPts.length > 1 && (
+        {/* {projectedPts.length > 1 && (
           <path
             d={`${projectedPath} V ${INNER_H} L ${px(lastActual ? lastActual.year : projectedPts[0]!.year)} ${INNER_H} Z`}
-            fill={`url(#pg-${theme.projected.replace("#", "")})`}
+            fill={`url(#${projGradId})`}
             className="gsdg-area"
           />
-        )}
+        )} */}
 
         {/* Actual fill area */}
-        {actualPts.length > 1 && (
+        {/* {actualPts.length > 1 && (
           <path
             d={`${actualPath} V ${INNER_H} L ${px(actualPts[0]!.year)} ${INNER_H} Z`}
-            fill={`url(#ag-${theme.actual.replace("#", "")})`}
+            fill={`url(#${actualGradId})`}
             className="gsdg-area"
           />
-        )}
+        )} */}
 
         {/* Projected line */}
         {projectedPts.length > 0 && (
@@ -351,7 +291,8 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
             fill="none"
             stroke={theme.projected}
             strokeWidth="1.8"
-            strokeDasharray="5 3"
+            strokeDasharray="4 4" // cleaner than 5 3
+            opacity="0.8"
             className={animated ? "gsdg-line-proj" : ""}
           />
         )}
@@ -362,7 +303,7 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
             d={actualPath}
             fill="none"
             stroke={theme.actual}
-            strokeWidth="2.2"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             className={animated ? "gsdg-line-actual" : ""}
@@ -397,7 +338,6 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
         {labelPts.map((p) => {
           const cx = px(p.year);
           const cy = py(p.value);
-          const isHighlight = HIGHLIGHT_YEARS.has(p.year);
           return (
             <g
               key={`dot-${p.year}`}
@@ -423,20 +363,6 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
                 {fmtVal(p.value)}
                 {unit === "%" ? "%" : ""}
               </text>
-              {/* Year label below dot for highlights */}
-              {isHighlight && (
-                <text
-                  x={cx.toFixed(1)}
-                  y={(cy + 16).toFixed(1)}
-                  fontSize="8"
-                  fill={theme.projected}
-                  fontFamily="'DM Mono', monospace"
-                  textAnchor="middle"
-                  opacity="0.85"
-                >
-                  {p.year}
-                </text>
-              )}
             </g>
           );
         })}
@@ -494,7 +420,7 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Legend: FC<{
-  theme: (typeof SDG_THEMES)[number];
+  theme: SDGTheme;
   hasProjected: boolean;
 }> = ({ theme, hasProjected }) => (
   <div className="gsdg-legend">
@@ -541,7 +467,7 @@ const IndicatorCard: FC<GraphSdgProps> = ({
   unit,
   dataPoints,
 }) => {
-  const theme = SDG_THEMES[sdgId] ?? DEFAULT_THEME;
+  const theme = getTheme(sdgId);
   const [fullscreen, setFullscreen] = useState(false);
   const [animated, setAnimated] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -722,9 +648,11 @@ interface GraphSdgRootProps {
   /** All data points for this SDG goal — already filtered by geography/level
    *  in the parent (SDGDetail). Pass queryGoalData(...) result here. */
   dataPoints: SDGDataPoint[];
+  /** Human-readable label for the current selection — used in empty-state */
+  geography?: string;
 }
 
-const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints }) => {
+const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints, geography }) => {
   // Derive unique metrics preserving insertion order
   const metrics = [
     ...new Map(
@@ -738,7 +666,9 @@ const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints }) => {
   if (metrics.length === 0) {
     return (
       <div className="gsdg-empty">
-        No indicator data available for the selected geography.
+        {geography
+          ? `No indicator data available for ${geography}.`
+          : "No indicator data available for the selected geography."}
       </div>
     );
   }
