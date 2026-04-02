@@ -22,6 +22,12 @@
   padding: 40px 20px 80px;
 }
 
+.sdg-content {
+  display: grid;
+  grid-template-columns: 35% auto;
+  gap: 40px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    CARDS GRID VIEW
 ───────────────────────────────────────────────────────────────────────────── */
@@ -50,7 +56,7 @@
 /* Grid */
 .sdgcards {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin: 0 auto;
 }
@@ -65,7 +71,7 @@
 .sdg-card {
   background: var(--sdg-color, #aaa);
   border-radius: 5px;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1.2;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -133,6 +139,7 @@
   display: flex;
   align-self: center;
   justify-content: center;
+  max-height: 80%;
   padding: 4px 6px 2px;
 }
 .sdg-card-icon img {
@@ -231,12 +238,19 @@
   display: none;
 }
 
+.sdg-pill img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.12));
+}
+
 .sdg-pill {
   flex-shrink: 0;
   min-width: 36px;
-  height: 36px;
+  min-height: 36px;
   padding: 0 10px;
-  border-radius: 100px;
+  border-radius: 20%;
   border: 2px solid transparent;
   background: #e8e4de;
   color: #555;

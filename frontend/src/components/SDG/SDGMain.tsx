@@ -159,7 +159,15 @@ const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
           onClick={() => onSelect(c.id as SDGNumber)}
           title={`SDG ${c.id}: ${c.name}`}
         >
-          {c.id}
+          {/* {c.id} */}
+          <img
+            src={`/icons/sdg/${c.iconKey}.svg`}
+            alt=""
+            draggable={false}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
         </button>
       ))}
     </nav>
@@ -460,28 +468,36 @@ const SDGMain: FC = () => {
           UN 2030 Agenda · 17 Goals · Global Indicators
         </p>
       </header>
+      <div className="sdg-content">
+        <div className="sdgcards">
+          {error && (
+            <div className="sdg-error" role="alert">
+              <strong>Could not load SDG data</strong>
+              <span>{error}</span>
+            </div>
+          )}
 
-      <div className="sdgcards">
-        {error && (
-          <div className="sdg-error" role="alert">
-            <strong>Could not load SDG data</strong>
-            <span>{error}</span>
-          </div>
-        )}
+          {loading &&
+            !error &&
+            Array.from({ length: 17 }, (_, i) => <SkeletonCard key={i} />)}
 
-        {loading &&
-          !error &&
-          Array.from({ length: 17 }, (_, i) => <SkeletonCard key={i} />)}
-
-        {!loading &&
-          !error &&
-          cards.map((card) => (
-            <SDGCard
-              key={card.id}
-              card={card}
-              onClick={(c) => setActiveSDG(c.id as SDGNumber)}
-            />
-          ))}
+          {!loading &&
+            !error &&
+            cards.map((card) => (
+              <SDGCard
+                key={card.id}
+                card={card}
+                onClick={(c) => setActiveSDG(c.id as SDGNumber)}
+              />
+            ))}
+        </div>
+        <div className="sdgmap">
+          <img
+            src="/images/sdg_map.png"
+            alt="Map of SDG indicators across districts and talukas"
+            className="sdgmap-image"
+          />
+        </div>
       </div>
     </main>
   );

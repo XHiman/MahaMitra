@@ -11,7 +11,6 @@ import "./GraphSdg.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OFFICIAL SDG COLOURS  (UN canonical hex, one per goal)
-// Used as the "actual" line / dot accent. Projected and bg are derived.
 // ─────────────────────────────────────────────────────────────────────────────
 const SDG_COLORS: Record<number, string> = {
   1: "#E5243B",
@@ -33,17 +32,6 @@ const SDG_COLORS: Record<number, string> = {
   17: "#19486A",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// THEME FACTORY
-// Builds a full theme from a single canonical SDG colour.
-// bg  = very light tint (5 % opacity on white)
-// actual = the canonical colour itself
-// projected = the canonical colour at 55 % opacity blended to white
-// dot = same as actual
-// muted = canonical colour at 15 % opacity (grid lines)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Convert a 6-digit hex to [r, g, b] (0-255). */
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   return [
@@ -53,7 +41,6 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-/** Blend colour toward white by (1-alpha). */
 function blendToWhite(r: number, g: number, b: number, alpha: number): string {
   const mix = (c: number) => Math.round(c * alpha + 255 * (1 - alpha));
   return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
@@ -65,31 +52,27 @@ interface SDGTheme {
   projected: string;
   dot: string;
   muted: string;
+  faint: string;
 }
 
 const themeCache = new Map<number, SDGTheme>();
 
 function getTheme(sdgId: number): SDGTheme {
   if (themeCache.has(sdgId)) return themeCache.get(sdgId)!;
-
   const hex = SDG_COLORS[sdgId] ?? "#888888";
   const [r, g, b] = hexToRgb(hex);
-
   const theme: SDGTheme = {
-    bg: "#ffffff", // very faint tint for card bg
-    actual: hex, // full canonical colour
-    projected: blendToWhite(r, g, b, 0.55), // muted for dashed projection
+    bg: "#ffffff",
+    actual: hex,
+    projected: blendToWhite(r, g, b, 0.55),
     dot: hex,
-    muted: blendToWhite(r, g, b, 0.18), // subtle grid lines
+    muted: blendToWhite(r, g, b, 0.18),
+    faint: blendToWhite(r, g, b, 0.07),
   };
-
   themeCache.set(sdgId, theme);
   return theme;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HIGHLIGHT YEARS
-// ─────────────────────────────────────────────────────────────────────────────
 const HIGHLIGHT_YEARS = new Set([2047, 2060]);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,29 +83,29 @@ interface SeriesPoint {
   year: number;
   value: number;
   isProjected: boolean;
-  isObservedAdvance?: boolean;
 }
 
 interface GraphSdgProps {
-  /** SDG goal number — determines colour theme */
   sdgId: SDGNumber;
-  /** Indicator metric name — used as the graph title */
   metricName: string;
-  /** Unit string (e.g. "%", "Number") */
   unit: string | null;
-  /** Data points already filtered to the right geography + level by parent */
   dataPoints: SDGDataPoint[];
+  /** Indicator code (e.g. "1.1.1") — shown in expanded / card view */
+  indicatorCode?: string;
+  /** Source string — shown in expanded / card view */
+  source?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SVG CHART — renders a single indicator timeseries
+// SVG CHART — compact (card) and expanded (modal) variants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const W = 560;
-const H = 200;
-const PAD = { top: 24, right: 20, bottom: 36, left: 52 };
-const INNER_W = W - PAD.left - PAD.right;
-const INNER_H = H - PAD.top - PAD.bottom;
+const W_COMPACT = 560;
+const H_COMPACT = 200;
+const W_EXPANDED = 900;
+const H_EXPANDED = 340;
+const PAD_COMPACT = { top: 28, right: 24, bottom: 40, left: 56 };
+const PAD_EXPANDED = { top: 40, right: 48, bottom: 56, left: 72 };
 
 function lerp(
   val: number,
@@ -147,31 +130,40 @@ interface ChartSvgProps {
   unit: string | null;
   theme: SDGTheme;
   animated: boolean;
+  expanded?: boolean;
 }
 
-const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
+const ChartSvg: FC<ChartSvgProps> = ({
+  series,
+  unit,
+  theme,
+  animated,
+  expanded = false,
+}) => {
   const sorted = [...series].sort((a, b) => a.year - b.year);
   if (sorted.length === 0) return null;
+
+  const W = expanded ? W_EXPANDED : W_COMPACT;
+  const H = expanded ? H_EXPANDED : H_COMPACT;
+  const PAD = expanded ? PAD_EXPANDED : PAD_COMPACT;
+  const INNER_W = W - PAD.left - PAD.right;
+  const INNER_H = H - PAD.top - PAD.bottom;
 
   const years = sorted.map((p) => p.year);
   const values = sorted.map((p) => p.value);
   const minY = Math.min(...values);
   const maxY = Math.max(...values);
-  const yPad = (maxY - minY) * 0.15 || 5;
+  const yPad = (maxY - minY) * 0.18 || 5;
   const yMin = minY - yPad;
   const yMax = maxY + yPad;
-
   const minX = Math.min(...years);
   const maxX = Math.max(...years);
 
   const px = (year: number) => lerp(year, minX, maxX, 0, INNER_W);
   const py = (val: number) => lerp(val, yMin, yMax, INNER_H, 0);
 
-  // Split into actual and projected segments
   const actualPts = sorted.filter((p) => !p.isProjected);
   const projectedPts = sorted.filter((p) => p.isProjected);
-
-  // Build a bridge point: last actual → first projected (for visual continuity)
   const lastActual = actualPts[actualPts.length - 1];
   const firstProjected = projectedPts[0];
 
@@ -193,53 +185,72 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
           .join(" ")
       : toPath(projectedPts);
 
-  // Y-axis ticks (4)
-  const yTicks = Array.from({ length: 4 }, (_, i) => {
-    const v = yMin + ((yMax - yMin) * i) / 3;
+  // Area fill paths
+  const areaActual =
+    actualPts.length > 1
+      ? `${actualPath} L ${px(actualPts[actualPts.length - 1]!.year)} ${INNER_H} L ${px(actualPts[0]!.year)} ${INNER_H} Z`
+      : "";
+  const areaProj =
+    projectedPts.length > 1
+      ? `${projectedPath} L ${px(projectedPts[projectedPts.length - 1]!.year)} ${INNER_H} L ${px(lastActual ? lastActual.year : projectedPts[0]!.year)} ${INNER_H} Z`
+      : "";
+
+  const tickCount = expanded ? 6 : 4;
+  const yTicks = Array.from({ length: tickCount }, (_, i) => {
+    const v = yMin + ((yMax - yMin) * i) / (tickCount - 1);
     return { y: py(v), label: fmtVal(v) };
   });
 
-  // X-axis ticks — show first, last, and key years
   const keyXYears = new Set(
     [minX, maxX, 2030, 2047, 2060].filter((y) => y >= minX && y <= maxX),
   );
+  // For expanded: add intermediate years every ~10 yrs
+  if (expanded) {
+    for (let y = Math.ceil(minX / 5) * 5; y <= maxX; y += 5) {
+      if (y > minX && y < maxX) keyXYears.add(y);
+    }
+  }
   const xTicks = [...keyXYears]
     .sort((a, b) => a - b)
     .map((y) => ({ x: px(y), label: y.toString() }));
 
-  // Special label points: first actual, 2047, 2060
   const labelPts = sorted.filter(
-    (p, i) => i === 0 || HIGHLIGHT_YEARS.has(p.year),
+    (p, i) => i === 0 || i === sorted.length - 1 || HIGHLIGHT_YEARS.has(p.year),
   );
+  const actualGradId = `ag-${theme.actual.replace("#", "")}${expanded ? "-ex" : ""}`;
+  const projGradId = `pg-${theme.projected.replace(/[^a-z0-9]/gi, "")}${expanded ? "-ex" : ""}`;
+  const clipId = `clip-${theme.actual.replace("#", "")}${expanded ? "-ex" : ""}`;
 
-  const totalLen = 600; // rough path length for stroke-dasharray animation
-
-  // Stable gradient IDs derived from sdgId embedded in theme colour
-  const actualGradId = `ag-${theme.actual.replace("#", "")}`;
-  const projGradId = `pg-${theme.projected.replace(/[^a-z0-9]/gi, "")}`;
+  const fontSize = expanded ? 11 : 8.5;
+  const dotR = expanded ? 5 : 3.5;
+  const strokeW = expanded ? 2.5 : 2;
 
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       xmlns="http://www.w3.org/2000/svg"
-      className="gsdg-svg"
+      className={`gsdg-svg${expanded ? " gsdg-svg--expanded" : ""}`}
       role="img"
     >
       <defs>
-        {/* Actual area gradient */}
         <linearGradient id={actualGradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={theme.actual} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={theme.actual} stopOpacity="0.02" />
+          <stop
+            offset="0%"
+            stopColor={theme.actual}
+            stopOpacity={expanded ? "0.22" : "0.15"}
+          />
+          <stop offset="100%" stopColor={theme.actual} stopOpacity="0.01" />
         </linearGradient>
-        {/* Projected area gradient */}
         <linearGradient id={projGradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={theme.projected} stopOpacity="0.14" />
+          <stop
+            offset="0%"
+            stopColor={theme.projected}
+            stopOpacity={expanded ? "0.15" : "0.10"}
+          />
           <stop offset="100%" stopColor={theme.projected} stopOpacity="0.01" />
         </linearGradient>
-
-        {/* Clip for animation */}
         {animated && (
-          <clipPath id="reveal-clip">
+          <clipPath id={clipId}>
             <rect
               x="0"
               y="0"
@@ -252,7 +263,17 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
       </defs>
 
       <g transform={`translate(${PAD.left},${PAD.top})`}>
-        {/* Grid lines */}
+        {/* ── Background subtle tint ── */}
+        <rect
+          x="0"
+          y="0"
+          width={INNER_W}
+          height={INNER_H}
+          fill="#ffffff"
+          rx="2"
+        />
+
+        {/* ── Grid lines ── */}
         {yTicks.map((t, i) => (
           <line
             key={i}
@@ -260,84 +281,106 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
             y1={t.y.toFixed(1)}
             x2={INNER_W}
             y2={t.y.toFixed(1)}
-            stroke="#E6E8EB"
-            strokeWidth="0.8"
-            opacity="0.6"
+            stroke="#D8DCE4"
+            strokeWidth={i === 0 ? "0" : "0.7"}
+            strokeDasharray={i === yTicks.length - 1 ? "0" : "4 3"}
+            opacity="0.8"
           />
         ))}
 
-        {/* Projected fill area */}
-        {/* {projectedPts.length > 1 && (
-          <path
-            d={`${projectedPath} V ${INNER_H} L ${px(lastActual ? lastActual.year : projectedPts[0]!.year)} ${INNER_H} Z`}
-            fill={`url(#${projGradId})`}
-            className="gsdg-area"
-          />
-        )} */}
+        {/* ── X baseline ── */}
+        <line
+          x1={0}
+          y1={INNER_H}
+          x2={INNER_W}
+          y2={INNER_H}
+          stroke="#C8CDD8"
+          strokeWidth="1"
+        />
 
-        {/* Actual fill area */}
-        {/* {actualPts.length > 1 && (
+        {/* ── Highlight year verticals ── */}
+        {[...HIGHLIGHT_YEARS].map((hy) => {
+          if (hy < minX || hy > maxX) return null;
+          const x = px(hy);
+          return (
+            <g key={hy}>
+              <line
+                x1={x.toFixed(1)}
+                y1="0"
+                x2={x.toFixed(1)}
+                y2={INNER_H}
+                stroke={theme.actual}
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                opacity="0.3"
+              />
+              {expanded && (
+                <text
+                  x={(x + 4).toFixed(1)}
+                  y="12"
+                  fontSize="9"
+                  fill={theme.actual}
+                  fontFamily="'DM Mono', monospace"
+                  opacity="0.6"
+                >
+                  {hy}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* ── Area fills ── */}
+        {areaActual && (
           <path
-            d={`${actualPath} V ${INNER_H} L ${px(actualPts[0]!.year)} ${INNER_H} Z`}
+            d={areaActual}
             fill={`url(#${actualGradId})`}
             className="gsdg-area"
           />
-        )} */}
+        )}
+        {areaProj && (
+          <path
+            d={areaProj}
+            fill={`url(#${projGradId})`}
+            className="gsdg-area"
+          />
+        )}
 
-        {/* Projected line */}
+        {/* ── Projected line ── */}
         {projectedPts.length > 0 && (
           <path
             d={projectedPath}
             fill="none"
             stroke={theme.projected}
-            strokeWidth="1.8"
-            strokeDasharray="4 4" // cleaner than 5 3
-            opacity="0.8"
+            strokeWidth={strokeW - 0.4}
+            strokeDasharray={expanded ? "7 4" : "5 3"}
+            strokeLinecap="round"
+            opacity="0.85"
             className={animated ? "gsdg-line-proj" : ""}
           />
         )}
 
-        {/* Actual line */}
+        {/* ── Actual line ── */}
         {actualPts.length > 0 && (
           <path
             d={actualPath}
             fill="none"
             stroke={theme.actual}
-            strokeWidth="2"
+            strokeWidth={strokeW}
             strokeLinecap="round"
             strokeLinejoin="round"
             className={animated ? "gsdg-line-actual" : ""}
             style={
-              animated
-                ? ({ "--line-len": `${totalLen}` } as CSSProperties)
-                : undefined
+              animated ? ({ "--line-len": "800" } as CSSProperties) : undefined
             }
           />
         )}
 
-        {/* Highlight year verticals */}
-        {[...HIGHLIGHT_YEARS].map((hy) => {
-          if (hy < minX || hy > maxX) return null;
-          const x = px(hy);
-          return (
-            <line
-              key={hy}
-              x1={x.toFixed(1)}
-              y1="0"
-              x2={x.toFixed(1)}
-              y2={INNER_H}
-              stroke={theme.projected}
-              strokeWidth="1"
-              strokeDasharray="3 3"
-              opacity="0.5"
-            />
-          );
-        })}
-
-        {/* Dots for special points */}
+        {/* ── Dots for key points ── */}
         {labelPts.map((p) => {
           const cx = px(p.year);
           const cy = py(p.value);
+          const color = p.isProjected ? theme.projected : theme.actual;
           return (
             <g
               key={`dot-${p.year}`}
@@ -346,17 +389,23 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
               <circle
                 cx={cx.toFixed(1)}
                 cy={cy.toFixed(1)}
-                r="3.5"
-                fill="white"
-                stroke={p.isProjected ? theme.projected : theme.actual}
-                strokeWidth="2"
+                r={dotR + 2}
+                fill={color}
+                opacity="0.12"
               />
-              {/* Value label */}
+              <circle
+                cx={cx.toFixed(1)}
+                cy={cy.toFixed(1)}
+                r={dotR}
+                fill="white"
+                stroke={color}
+                strokeWidth={expanded ? 2.5 : 2}
+              />
               <text
-                x={(cx + 5).toFixed(1)}
-                y={(cy - 6).toFixed(1)}
-                fontSize="9"
-                fill={p.isProjected ? theme.projected : theme.actual}
+                x={(cx + (expanded ? 8 : 6)).toFixed(1)}
+                y={(cy - (expanded ? 10 : 7)).toFixed(1)}
+                fontSize={expanded ? 10 : 9}
+                fill={color}
                 fontFamily="'DM Mono', monospace"
                 fontWeight="600"
               >
@@ -367,45 +416,47 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
           );
         })}
 
-        {/* Y-axis labels */}
+        {/* ── Y-axis labels ── */}
         {yTicks.map((t, i) => (
           <text
             key={i}
-            x="-8"
-            y={(t.y + 3.5).toFixed(1)}
-            fontSize="8.5"
+            x={-10}
+            y={(t.y + 4).toFixed(1)}
+            fontSize={fontSize}
             textAnchor="end"
-            fill="#888"
+            fill="#8892A4"
             fontFamily="'DM Mono', monospace"
+            letterSpacing="-0.3"
           >
             {t.label}
           </text>
         ))}
 
-        {/* X-axis labels */}
+        {/* ── X-axis labels ── */}
         {xTicks.map((t, i) => (
           <text
             key={i}
             x={t.x.toFixed(1)}
-            y={(INNER_H + 14).toFixed(1)}
-            fontSize="8.5"
+            y={(INNER_H + (expanded ? 18 : 14)).toFixed(1)}
+            fontSize={fontSize}
             textAnchor="middle"
-            fill="#999"
+            fill="#8892A4"
             fontFamily="'DM Mono', monospace"
           >
             {t.label}
           </text>
         ))}
 
-        {/* Unit label top-left */}
+        {/* ── Unit label ── */}
         {unit && (
           <text
             x="0"
-            y="-8"
-            fontSize="8"
+            y={-10}
+            fontSize={expanded ? 10 : 8}
             fill={theme.actual}
             fontFamily="'DM Mono', monospace"
-            opacity="0.7"
+            fontWeight="600"
+            opacity="0.8"
           >
             {unit}
           </text>
@@ -416,49 +467,183 @@ const ChartSvg: FC<ChartSvgProps> = ({ series, unit, theme, animated }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SPARSE DATA CARD  (≤ 2 distinct years → show as stat card, not graph)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SparseCardProps {
+  sdgId: SDGNumber;
+  metricName: string;
+  unit: string | null;
+  series: SeriesPoint[];
+  indicatorCode?: string;
+  source?: string;
+}
+
+const SparseDataCard: FC<SparseCardProps> = ({
+  sdgId,
+  metricName,
+  series,
+  unit,
+  indicatorCode,
+  source,
+}) => {
+  const theme = getTheme(sdgId);
+  const sorted = [...series].sort((a, b) => a.year - b.year);
+  const latest = sorted[sorted.length - 1];
+  const earliest = sorted[0];
+  const hasDelta =
+    sorted.length >= 2 && latest && earliest && latest !== earliest;
+  const delta = hasDelta ? latest!.value - earliest!.value : null;
+  const deltaPositive = delta !== null && delta >= 0;
+
+  return (
+    <>
+      <div
+        className={"gsdg-sparse-card"}
+        style={
+          {
+            "--theme-actual": theme.actual,
+            "--theme-faint": theme.faint,
+          } as CSSProperties
+        }
+      >
+        {/* Top accent bar */}
+        <div
+          className="gsdg-sparse-accent"
+          style={{ background: theme.actual }}
+        />
+
+        {/* Header */}
+        <div className="gsdg-sparse-header">
+          <p className="gsdg-sparse-title">{metricName}</p>
+        </div>
+
+        {/* Stats */}
+        <div className="gsdg-sparse-stats">
+          {sorted.map((p) => (
+            <div className="gsdg-sparse-stat" key={p.year}>
+              <span className="gsdg-sparse-year">
+                {p.year}
+                {p.isProjected ? " ◌" : ""}
+              </span>
+              <span
+                className="gsdg-sparse-value"
+                style={{ color: theme.actual }}
+              >
+                {fmtVal(p.value)}
+                {unit === "%" ? "%" : ""}
+              </span>
+            </div>
+          ))}
+
+          {hasDelta && delta !== null && (
+            <div className="gsdg-sparse-delta">
+              <span
+                className={`gsdg-delta-badge${deltaPositive ? " gsdg-delta-badge--pos" : " gsdg-delta-badge--neg"}`}
+              >
+                {deltaPositive ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}
+              </span>
+              <span className="gsdg-delta-label">change</span>
+            </div>
+          )}
+        </div>
+        <div className="gsdg-meta-panel">
+          {indicatorCode && (
+            <div className="gsdg-meta-row">
+              <span className="gsdg-meta-key">Indicator Code</span>
+              <span className="gsdg-meta-val">{indicatorCode}</span>
+            </div>
+          )}
+          {source && (
+            <div className="gsdg-meta-row">
+              <span className="gsdg-meta-key">Source</span>
+              <span className="gsdg-meta-val">{source}</span>
+            </div>
+          )}
+          <div className="gsdg-meta-row">
+            <span className="gsdg-meta-key">Data Points</span>
+            <span className="gsdg-meta-val">
+              {series.length} observation{series.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <p className="gsdg-sparse-note">
+            Insufficient time-series data to render a trend chart.
+          </p>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LEGEND
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Legend: FC<{
   theme: SDGTheme;
   hasProjected: boolean;
-}> = ({ theme, hasProjected }) => (
-  <div className="gsdg-legend">
+  expanded?: boolean;
+}> = ({ theme, hasProjected, expanded }) => (
+  <div className={`gsdg-legend${expanded ? " gsdg-legend--expanded" : ""}`}>
     <span className="gsdg-legend-item">
-      <svg width="20" height="8">
+      <svg width="24" height="10">
         <line
           x1="0"
-          y1="4"
-          x2="20"
-          y2="4"
+          y1="5"
+          x2="24"
+          y2="5"
           stroke={theme.actual}
-          strokeWidth="2.2"
+          strokeWidth="2.5"
           strokeLinecap="round"
+        />
+        <circle
+          cx="12"
+          cy="5"
+          r="3"
+          fill="white"
+          stroke={theme.actual}
+          strokeWidth="2"
         />
       </svg>
       Actual
     </span>
     {hasProjected && (
       <span className="gsdg-legend-item">
-        <svg width="20" height="8">
+        <svg width="24" height="10">
           <line
             x1="0"
-            y1="4"
-            x2="20"
-            y2="4"
+            y1="5"
+            x2="24"
+            y2="5"
             stroke={theme.projected}
-            strokeWidth="1.8"
-            strokeDasharray="5 3"
+            strokeWidth="2"
+            strokeDasharray="6 3"
           />
         </svg>
         Projected
+      </span>
+    )}
+    {expanded && (
+      <span className="gsdg-legend-item gsdg-legend-item--muted">
+        <svg width="10" height="10">
+          <circle
+            cx="5"
+            cy="5"
+            r="4"
+            fill="none"
+            stroke="#aaa"
+            strokeWidth="1.5"
+            strokeDasharray="3 2"
+          />
+        </svg>
+        ◌ Projected year
       </span>
     )}
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SINGLE INDICATOR CARD
+// SINGLE INDICATOR CARD  (rich graph version — > 2 years of data)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const IndicatorCard: FC<GraphSdgProps> = ({
@@ -466,6 +651,8 @@ const IndicatorCard: FC<GraphSdgProps> = ({
   metricName,
   unit,
   dataPoints,
+  indicatorCode,
+  source,
 }) => {
   const theme = getTheme(sdgId);
   const [fullscreen, setFullscreen] = useState(false);
@@ -473,19 +660,29 @@ const IndicatorCard: FC<GraphSdgProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Build series
   const series: SeriesPoint[] = dataPoints
     .filter((p) => p.metricName === metricName)
-    .map((p) => ({
-      year: p.year,
-      value: p.value,
-      isProjected: p.isProjected,
-    }))
+    .map((p) => ({ year: p.year, value: p.value, isProjected: p.isProjected }))
     .sort((a, b) => a.year - b.year);
 
-  const hasProjected = series.some((p) => p.isProjected);
+  // ── Sparse path: ≤ 2 distinct years ─────────────────────────────────────
+  const distinctYears = new Set(series.map((p) => p.year)).size;
+  if (distinctYears <= 2) {
+    return (
+      <SparseDataCard
+        sdgId={sdgId}
+        metricName={metricName}
+        unit={unit}
+        series={series}
+        indicatorCode={indicatorCode}
+        source={source}
+      />
+    );
+  }
 
-  // Trigger animation on intersect
+  const hasProjected = series.some((p) => p.isProjected);
+  const latestPt = [...series].sort((a, b) => b.year - a.year)[0];
+
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
@@ -502,7 +699,6 @@ const IndicatorCard: FC<GraphSdgProps> = ({
     return () => observerRef.current?.disconnect();
   }, []);
 
-  // Download as SVG
   const handleDownload = useCallback(() => {
     const svgEl = cardRef.current?.querySelector("svg.gsdg-svg");
     if (!svgEl) return;
@@ -516,15 +712,12 @@ const IndicatorCard: FC<GraphSdgProps> = ({
     URL.revokeObjectURL(url);
   }, [sdgId, metricName]);
 
-  const toggleFullscreen = useCallback(() => {
-    setFullscreen((f) => !f);
-  }, []);
+  const toggleFullscreen = useCallback(() => setFullscreen((f) => !f), []);
 
   if (series.length === 0) return null;
 
   return (
     <>
-      {/* Fullscreen backdrop */}
       {fullscreen && (
         <div className="gsdg-backdrop" onClick={toggleFullscreen} />
       )}
@@ -539,25 +732,41 @@ const IndicatorCard: FC<GraphSdgProps> = ({
           } as CSSProperties
         }
       >
+        {/* Left accent stripe */}
+        <div
+          className="gsdg-card-stripe"
+          style={{ background: theme.actual }}
+        />
+
         {/* Header */}
         <div className="gsdg-card-header">
-          <p className="gsdg-card-title">{metricName}</p>
+          <div className="gsdg-card-title-group">
+            <p className="gsdg-card-title">{metricName}</p>
+            {latestPt && (
+              <span
+                className="gsdg-card-latest"
+                style={{ color: theme.actual }}
+              >
+                {fmtVal(latestPt.value)}
+                {unit === "%" ? "%" : ""}{" "}
+                <span className="gsdg-card-latest-yr">({latestPt.year})</span>
+              </span>
+            )}
+          </div>
           <div className="gsdg-card-actions">
             <button
               className="gsdg-action-btn"
               title="Download SVG"
               onClick={handleDownload}
-              aria-label="Download chart as SVG"
+              aria-label="Download chart"
             >
               <DownloadIcon />
             </button>
             <button
               className="gsdg-action-btn"
-              title={fullscreen ? "Exit fullscreen" : "Expand"}
+              title={fullscreen ? "Collapse" : "Expand"}
               onClick={toggleFullscreen}
-              aria-label={
-                fullscreen ? "Collapse chart" : "Expand chart to fullscreen"
-              }
+              aria-label={fullscreen ? "Collapse chart" : "Expand chart"}
             >
               {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
             </button>
@@ -565,7 +774,11 @@ const IndicatorCard: FC<GraphSdgProps> = ({
         </div>
 
         {/* Legend */}
-        <Legend theme={theme} hasProjected={hasProjected} />
+        <Legend
+          theme={theme}
+          hasProjected={hasProjected}
+          expanded={fullscreen}
+        />
 
         {/* Chart */}
         <div className="gsdg-chart-wrap">
@@ -574,8 +787,34 @@ const IndicatorCard: FC<GraphSdgProps> = ({
             unit={unit}
             theme={theme}
             animated={animated}
+            expanded={fullscreen}
           />
         </div>
+
+        {/* Expanded meta panel */}
+        {fullscreen && (
+          <div className="gsdg-meta-panel gsdg-meta-panel--inline">
+            {indicatorCode && (
+              <div className="gsdg-meta-row">
+                <span className="gsdg-meta-key">Indicator Code</span>
+                <span className="gsdg-meta-val">{indicatorCode}</span>
+              </div>
+            )}
+            {source && (
+              <div className="gsdg-meta-row">
+                <span className="gsdg-meta-key">Source</span>
+                <span className="gsdg-meta-val">{source}</span>
+              </div>
+            )}
+            <div className="gsdg-meta-row">
+              <span className="gsdg-meta-key">Data Points</span>
+              <span className="gsdg-meta-val">
+                {series.length} observations ·{" "}
+                {new Set(series.map((p) => p.year)).size} years
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -587,8 +826,8 @@ const IndicatorCard: FC<GraphSdgProps> = ({
 
 const DownloadIcon: FC = () => (
   <svg
-    width="13"
-    height="13"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -604,8 +843,8 @@ const DownloadIcon: FC = () => (
 
 const ExpandIcon: FC = () => (
   <svg
-    width="13"
-    height="13"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -622,8 +861,8 @@ const ExpandIcon: FC = () => (
 
 const CollapseIcon: FC = () => (
   <svg
-    width="13"
-    height="13"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -640,25 +879,25 @@ const CollapseIcon: FC = () => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GRAPH SDG — root export
-// Renders all indicators for the given SDG goal + geography + level combo
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface GraphSdgRootProps {
   sdgId: SDGNumber;
-  /** All data points for this SDG goal — already filtered by geography/level
-   *  in the parent (SDGDetail). Pass queryGoalData(...) result here. */
   dataPoints: SDGDataPoint[];
-  /** Human-readable label for the current selection — used in empty-state */
   geography?: string;
 }
 
 const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints, geography }) => {
-  // Derive unique metrics preserving insertion order
   const metrics = [
     ...new Map(
       dataPoints.map((p) => [
         p.metricName,
-        { name: p.metricName, unit: p.unit },
+        {
+          name: p.metricName,
+          unit: p.unit,
+          indicatorCode: (p as any).indicatorCode as string | undefined,
+          source: (p as any).source as string | undefined,
+        },
       ]),
     ).values(),
   ];
@@ -682,6 +921,8 @@ const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints, geography }) => {
           metricName={m.name}
           unit={m.unit}
           dataPoints={dataPoints}
+          indicatorCode={m.indicatorCode}
+          source={m.source}
         />
       ))}
     </div>
