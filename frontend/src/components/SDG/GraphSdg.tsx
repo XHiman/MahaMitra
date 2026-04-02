@@ -5,6 +5,8 @@ import {
   useCallback,
   type FC,
   type CSSProperties,
+  memo,
+  useMemo,
 } from "react";
 import type { SDGDataPoint, SDGNumber } from "../types/SDG.types";
 import "./GraphSdg.css";
@@ -55,25 +57,29 @@ interface SDGTheme {
   faint: string;
 }
 
-const themeCache = new Map<number, SDGTheme>();
+// Precompute all themes at module initialization for O(1) lookup
+const precomputedThemes = (() => {
+  const themes: Record<number, SDGTheme> = {};
+  for (const [sdgIdStr, hex] of Object.entries(SDG_COLORS)) {
+    const sdgId = Number(sdgIdStr);
+    const [r, g, b] = hexToRgb(hex);
+    themes[sdgId] = {
+      bg: "#ffffff",
+      actual: hex,
+      projected: blendToWhite(r, g, b, 0.55),
+      dot: hex,
+      muted: blendToWhite(r, g, b, 0.18),
+      faint: blendToWhite(r, g, b, 0.07),
+    };
+  }
+  return themes;
+})();
 
 function getTheme(sdgId: number): SDGTheme {
-  if (themeCache.has(sdgId)) return themeCache.get(sdgId)!;
-  const hex = SDG_COLORS[sdgId] ?? "#888888";
-  const [r, g, b] = hexToRgb(hex);
-  const theme: SDGTheme = {
-    bg: "#ffffff",
-    actual: hex,
-    projected: blendToWhite(r, g, b, 0.55),
-    dot: hex,
-    muted: blendToWhite(r, g, b, 0.18),
-    faint: blendToWhite(r, g, b, 0.07),
-  };
-  themeCache.set(sdgId, theme);
-  return theme;
+  return precomputedThemes[sdgId] ?? precomputedThemes[1]!;
 }
 
-const HIGHLIGHT_YEARS = new Set([2047, 2060]);
+const HIGHLIGHT_YEARS = Object.freeze(new Set([2047, 2060]));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -133,13 +139,9 @@ interface ChartSvgProps {
   expanded?: boolean;
 }
 
-const ChartSvg: FC<ChartSvgProps> = ({
-  series,
-  unit,
-  theme,
-  animated,
-  expanded = false,
-}) => {
+const ChartSvg = memo(
+  (props: ChartSvgProps) => {
+    const { series, unit, theme, animated, expanded = false } = props;
   const sorted = [...series].sort((a, b) => a.year - b.year);
   if (sorted.length === 0) return null;
 
@@ -464,7 +466,8 @@ const ChartSvg: FC<ChartSvgProps> = ({
       </g>
     </svg>
   );
-};
+  },
+) as FC<ChartSvgProps>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SPARSE DATA CARD  (≤ 2 distinct years → show as stat card, not graph)
@@ -479,22 +482,18 @@ interface SparseCardProps {
   source?: string;
 }
 
-const SparseDataCard: FC<SparseCardProps> = ({
-  sdgId,
-  metricName,
-  series,
-  unit,
-  indicatorCode,
-  source,
-}) => {
-  const theme = getTheme(sdgId);
-  const sorted = [...series].sort((a, b) => a.year - b.year);
-  const latest = sorted[sorted.length - 1];
-  const earliest = sorted[0];
-  const hasDelta =
-    sorted.length >= 2 && latest && earliest && latest !== earliest;
-  const delta = hasDelta ? latest!.value - earliest!.value : null;
-  const deltaPositive = delta !== null && delta >= 0;
+const SparseDataCard = memo((props: SparseCardProps) => {
+  const { sdgId, metricName, series, unit, indicatorCode, source } = props;
+  const theme = useMemo(() => getTheme(sdgId), [sdgId]);
+  const sorted = useMemo(() => [...series].sort((a, b) => a.year - b.year), [series]);
+  const latest = useMemo(() => sorted[sorted.length - 1], [sorted]);
+  const earliest = useMemo(() => sorted[0], [sorted]);
+  const hasDelta = useMemo(
+    () => sorted.length >= 2 && latest && earliest && latest !== earliest,
+    [sorted, latest, earliest],
+  );
+  const delta = useMemo(() => (hasDelta ? latest!.value - earliest!.value : null), [hasDelta, latest, earliest]);
+  const deltaPositive = useMemo(() => delta !== null && delta >= 0, [delta]);
 
   return (
     <>
@@ -560,30 +559,32 @@ const SparseDataCard: FC<SparseCardProps> = ({
               <span className="gsdg-meta-val">{source}</span>
             </div>
           )}
-          <div className="gsdg-meta-row">
+          {/* <div className="gsdg-meta-row">
             <span className="gsdg-meta-key">Data Points</span>
             <span className="gsdg-meta-val">
               {series.length} observation{series.length !== 1 ? "s" : ""}
             </span>
-          </div>
+          </div> */}
           <p className="gsdg-sparse-note">
-            Insufficient time-series data to render a trend chart.
+            More Data Needed to show trend <br /> (≥ 3 distinct years)
           </p>
         </div>
       </div>
     </>
   );
-};
+}) as FC<SparseCardProps>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGEND
 // ─────────────────────────────────────────────────────────────────────────────
 
-const Legend: FC<{
+const Legend = memo((props: {
   theme: SDGTheme;
   hasProjected: boolean;
   expanded?: boolean;
-}> = ({ theme, hasProjected, expanded }) => (
+}) => {
+  const { theme, hasProjected, expanded } = props;
+  return (
   <div className={`gsdg-legend${expanded ? " gsdg-legend--expanded" : ""}`}>
     <span className="gsdg-legend-item">
       <svg width="24" height="10">
@@ -640,45 +641,30 @@ const Legend: FC<{
       </span>
     )}
   </div>
-);
+  );
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SINGLE INDICATOR CARD  (rich graph version — > 2 years of data)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const IndicatorCard: FC<GraphSdgProps> = ({
-  sdgId,
-  metricName,
-  unit,
-  dataPoints,
-  indicatorCode,
-  source,
-}) => {
-  const theme = getTheme(sdgId);
+const IndicatorCard = memo((props: GraphSdgProps) => {
+  const { sdgId, metricName, unit, dataPoints, indicatorCode, source } = props;
+  const theme = useMemo(() => getTheme(sdgId), [sdgId]);
   const [fullscreen, setFullscreen] = useState(false);
   const [animated, setAnimated] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const series: SeriesPoint[] = dataPoints
-    .filter((p) => p.metricName === metricName)
-    .map((p) => ({ year: p.year, value: p.value, isProjected: p.isProjected }))
-    .sort((a, b) => a.year - b.year);
+  const series: SeriesPoint[] = useMemo(() => {
+    return dataPoints
+      .filter((p) => p.metricName === metricName)
+      .map((p) => ({ year: p.year, value: p.value, isProjected: p.isProjected }))
+      .sort((a, b) => a.year - b.year);
+  }, [dataPoints, metricName]);
 
   // ── Sparse path: ≤ 2 distinct years ─────────────────────────────────────
-  const distinctYears = new Set(series.map((p) => p.year)).size;
-  if (distinctYears <= 2) {
-    return (
-      <SparseDataCard
-        sdgId={sdgId}
-        metricName={metricName}
-        unit={unit}
-        series={series}
-        indicatorCode={indicatorCode}
-        source={source}
-      />
-    );
-  }
+  const distinctYears = useMemo(() => new Set(series.map((p) => p.year)).size, [series]);
 
   const hasProjected = series.some((p) => p.isProjected);
   const latestPt = [...series].sort((a, b) => b.year - a.year)[0];
@@ -713,6 +699,20 @@ const IndicatorCard: FC<GraphSdgProps> = ({
   }, [sdgId, metricName]);
 
   const toggleFullscreen = useCallback(() => setFullscreen((f) => !f), []);
+
+  // ── Early returns AFTER all hooks ──────────────────────────────────────
+  if (distinctYears <= 2) {
+    return (
+      <SparseDataCard
+        sdgId={sdgId}
+        metricName={metricName}
+        unit={unit}
+        series={series}
+        indicatorCode={indicatorCode}
+        source={source}
+      />
+    );
+  }
 
   if (series.length === 0) return null;
 
@@ -818,13 +818,13 @@ const IndicatorCard: FC<GraphSdgProps> = ({
       </div>
     </>
   );
-};
+}) as FC<GraphSdgProps>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ICONS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DownloadIcon: FC = () => (
+const DownloadIcon = memo(() => (
   <svg
     width="14"
     height="14"
@@ -839,9 +839,9 @@ const DownloadIcon: FC = () => (
     <polyline points="7 10 12 15 17 10" />
     <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
-);
+));
 
-const ExpandIcon: FC = () => (
+const ExpandIcon = memo(() => (
   <svg
     width="14"
     height="14"
@@ -857,9 +857,9 @@ const ExpandIcon: FC = () => (
     <line x1="21" y1="3" x2="14" y2="10" />
     <line x1="3" y1="21" x2="10" y2="14" />
   </svg>
-);
+));
 
-const CollapseIcon: FC = () => (
+const CollapseIcon = memo(() => (
   <svg
     width="14"
     height="14"
@@ -875,8 +875,10 @@ const CollapseIcon: FC = () => (
     <line x1="10" y1="14" x2="21" y2="3" />
     <line x1="3" y1="21" x2="14" y2="10" />
   </svg>
-);
+));
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GRAPH SDG — root export
 // ─────────────────────────────────────────────────────────────────────────────
 // GRAPH SDG — root export
 // ─────────────────────────────────────────────────────────────────────────────
@@ -887,20 +889,23 @@ interface GraphSdgRootProps {
   geography?: string;
 }
 
-const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints, geography }) => {
-  const metrics = [
-    ...new Map(
-      dataPoints.map((p) => [
-        p.metricName,
-        {
-          name: p.metricName,
-          unit: p.unit,
-          indicatorCode: (p as any).indicatorCode as string | undefined,
-          source: (p as any).source as string | undefined,
-        },
-      ]),
-    ).values(),
-  ];
+const GraphSdg = memo((props: GraphSdgRootProps) => {
+  const { sdgId, dataPoints, geography } = props;
+  const metrics = useMemo(() => {
+    return [
+      ...new Map(
+        dataPoints.map((p) => [
+          p.metricName,
+          {
+            name: p.metricName,
+            unit: p.unit,
+            indicatorCode: (p as any).indicatorCode as string | undefined,
+            source: (p as any).source as string | undefined,
+          },
+        ]),
+      ).values(),
+    ];
+  }, [dataPoints]);
 
   if (metrics.length === 0) {
     return (
@@ -927,6 +932,6 @@ const GraphSdg: FC<GraphSdgRootProps> = ({ sdgId, dataPoints, geography }) => {
       ))}
     </div>
   );
-};
+}) as FC<GraphSdgRootProps>;
 
 export default GraphSdg;

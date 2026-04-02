@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type FC } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, type FC, memo } from "react";
 import type { SDGCardModel, SDGDataset, SDGNumber } from "../types/SDG.types";
 import {
   fetchSDGDataset,
@@ -6,6 +6,7 @@ import {
   queryGoalData,
 } from "../services/fetchSdgData";
 import GraphSdg from "./GraphSdg";
+import InteractiveMap from "./InteractiveMap";
 import "./SDGMain.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +76,9 @@ interface SDGCardProps {
   onClick: (card: SDGCardModel) => void;
 }
 
-const SDGCard: FC<SDGCardProps> = ({ card, onClick }) => (
+const SDGCard = memo((props: SDGCardProps) => {
+  const { card, onClick } = props;
+  return (
   <div
     className="sdg-card"
     style={{ "--sdg-color": card.color } as React.CSSProperties}
@@ -111,11 +114,12 @@ const SDGCard: FC<SDGCardProps> = ({ card, onClick }) => (
       </div>
     </div>
   </div>
-);
+  );
+}) as FC<SDGCardProps>;
 
-const SkeletonCard: FC = () => (
+const SkeletonCard = memo(() => (
   <div className="sdg-card sdg-card--skeleton" aria-hidden="true" />
-);
+));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PILL NAV  —  scrollable row of SDG number buttons at the top of detail view
@@ -123,11 +127,12 @@ const SkeletonCard: FC = () => (
 
 interface SDGPillNavProps {
   cards: SDGCardModel[];
-  activeId: SDGNumber;
-  onSelect: (id: SDGNumber) => void;
+  activeId: SDGNumber | "all";
+  onSelect: (id: SDGNumber | "all") => void;
 }
 
-const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
+const SDGPillNav = memo((props: SDGPillNavProps) => {
+  const { cards, activeId, onSelect } = props;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,6 +154,8 @@ const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
       ref={scrollRef}
       aria-label="SDG quick navigation"
     >
+      
+
       {cards.map((c) => (
         <button
           key={c.id}
@@ -170,9 +177,21 @@ const SDGPillNav: FC<SDGPillNavProps> = ({ cards, activeId, onSelect }) => {
           />
         </button>
       ))}
+      {/* All SDG Button */}
+      <button
+        key="all"
+        data-sdg-id="all"
+        className={`sdg-pill${activeId === "all" ? " sdg-pill--active" : ""}`}
+        style={{ "--pill-color": "#666" } as React.CSSProperties}
+        aria-current={activeId === "all" ? "page" : undefined}
+        onClick={() => onSelect("all")}
+        title="All SDG Indicators"
+      >
+        <p>All</p>
+      </button>
     </nav>
   );
-};
+}) as FC<SDGPillNavProps>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDG DETAIL VIEW
@@ -182,8 +201,9 @@ interface SDGDetailProps {
   cards: SDGCardModel[];
   dataset: SDGDataset;
   districtTalukaMap: Record<string, string[]>;
-  initialId: SDGNumber;
+  initialId: SDGNumber | "all";
   onBack: () => void;
+  selectedLocation?: string;
 }
 
 const SDGDetail: FC<SDGDetailProps> = ({
@@ -192,40 +212,101 @@ const SDGDetail: FC<SDGDetailProps> = ({
   districtTalukaMap,
   initialId,
   onBack,
+  selectedLocation,
 }) => {
-  const [activeId, setActiveId] = useState<SDGNumber>(initialId);
+  const [activeId, setActiveId] = useState<SDGNumber | "all">(initialId);
 
   const allDistricts = Object.keys(districtTalukaMap);
-  const [district, setDistrict] = useState<string>(allDistricts[0] ?? "");
-  // "" means "All" → show district-level data
-  const [taluka, setTaluka] = useState<string>("");
+  
+  // Detect if selectedLocation is a taluka or district
+  const allTalukas = new Set(
+    Object.values(districtTalukaMap).flat()
+  );
+  const isSelectedLocationTaluka = selectedLocation && allTalukas.has(selectedLocation);
+  
+  // Set initial district: if selectedLocation is a taluka, find its district; otherwise use as district
+  const [district, setDistrict] = useState<string>(() => {
+    if (selectedLocation && selectedLocation in districtTalukaMap) {
+      return selectedLocation;
+    }
+    if (isSelectedLocationTaluka) {
+      // Find district that contains this taluka
+      for (const [d, talukas] of Object.entries(districtTalukaMap)) {
+        if (talukas.includes(selectedLocation)) {
+          return d;
+        }
+      }
+    }
+    return allDistricts[0] ?? "";
+  });
+  
+  const [taluka, setTaluka] = useState<string>(() => {
+    if (isSelectedLocationTaluka) {
+      return selectedLocation;
+    }
+    return "";
+  });
 
-  // Reset taluka whenever district changes
+  // Reset taluka whenever district changes (only if taluka is not in new district's list)
   useEffect(() => {
-    setTaluka("");
-  }, [district]);
+    const currentTalukas = districtTalukaMap[district] ?? [];
+    if (taluka && !currentTalukas.includes(taluka)) {
+      setTaluka("");
+    }
+  }, [district, taluka, districtTalukaMap]);
 
-  const card = cards.find((c) => c.id === activeId);
+  // Update district and taluka when selectedLocation changes from map click
+  useEffect(() => {
+    if (selectedLocation) {
+      const isLocationTaluka = allTalukas.has(selectedLocation);
+      
+      if (selectedLocation in districtTalukaMap) {
+        // It's a district
+        setDistrict(selectedLocation);
+        setTaluka("");
+      } else if (isLocationTaluka) {
+        // It's a taluka - find its district and set both
+        for (const [d, talukas] of Object.entries(districtTalukaMap)) {
+          if (talukas.includes(selectedLocation)) {
+            setDistrict(d);
+            setTaluka(selectedLocation);
+            break;
+          }
+        }
+      }
+    }
+  }, [selectedLocation, districtTalukaMap, allTalukas]);
+
+  const card = activeId === "all" ? null : cards.find((c) => c.id === activeId);
   const talukas = districtTalukaMap[district] ?? [];
-  const description = SDG_DESCRIPTIONS[activeId] ?? "";
+  const description = activeId === "all" ? "" : (SDG_DESCRIPTIONS[activeId] ?? "");
 
   // Derive filtered data points for GraphSdg.
-  // "All" taluka (taluka === "") → show district-level rows for the selected district.
-  // Specific taluka selected     → show taluka-level rows for that taluka geography.
-  //
-  // FIX: When a taluka is selected, query by geography=taluka (the taluka's own
-  // name) with level="Taluka". Talukas like "Arvi" have their own geography
-  // string in the CSV — they are NOT nested under the district geography string.
+  // When activeId is "all", show all indicators for the location
   const filteredPoints = useMemo(() => {
+    if (activeId === "all") {
+      if (taluka === "") {
+        // All SDG for district
+        return Array.from(dataset.values()).flatMap((goal) =>
+          goal.dataPoints.filter(
+            (dp) => dp.geography === district && dp.level === "District"
+          )
+        );
+      }
+      // All SDG for taluka
+      return Array.from(dataset.values()).flatMap((goal) =>
+        goal.dataPoints.filter(
+          (dp) => dp.geography === taluka && dp.level === "Taluka"
+        )
+      );
+    }
     if (!card) return [];
     if (taluka === "") {
-      // All → district aggregate
       return queryGoalData(dataset, activeId, {
         geography: district,
         level: "District",
       });
     }
-    // Specific taluka — geography in the CSV is the taluka name itself (e.g. "Arvi")
     return queryGoalData(dataset, activeId, {
       geography: taluka,
       level: "Taluka",
@@ -235,73 +316,78 @@ const SDGDetail: FC<SDGDetailProps> = ({
   // Human-readable label for the GraphSdg empty state
   const geographyLabel = taluka ? `Taluka ${taluka}` : `${district} District`;
 
-  if (!card) return null;
-
+  // Allow rendering "all indicators" view even when card is null
   return (
     <section className="sdg-detail">
       {/* ── 1. Pill nav ──────────────────────────────────────────────────── */}
       <SDGPillNav cards={cards} activeId={activeId} onSelect={setActiveId} />
 
-      {/* ── 2. Hero header ───────────────────────────────────────────────── */}
-      <div
-        className="sdg-detail-hero"
-        style={{ "--hero-color": card.color } as React.CSSProperties}
-      >
-        {/* Back */}
-        <button
-          className="sdg-back-btn"
-          onClick={onBack}
-          aria-label="Back to all SDGs"
+      {/* ── 2. Hero header (only for specific SDG, not "all") ───────────── */}
+      {card && (
+        <div
+          className="sdg-detail-hero"
+          style={{ "--hero-color": card.color } as React.CSSProperties}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+          {/* Back */}
+          <button
+            className="sdg-back-btn"
+            onClick={onBack}
+            aria-label="Back to all SDGs"
           >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          All Goals
-        </button>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            All Goals
+          </button>
 
-        <div className="sdg-detail-hero-body">
-          {/* Icon */}
-          <div className="sdg-detail-hero-icon" aria-hidden="true">
-            <img
-              src={`/icons/sdg/${card.iconKey}.svg`}
-              alt=""
-              draggable={false}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
-          </div>
+          <div className="sdg-detail-hero-body">
+            {/* Icon */}
+            <div className="sdg-detail-hero-icon" aria-hidden="true">
+              <img
+                src={`/icons/sdg/${card.iconKey}.svg`}
+                alt=""
+                draggable={false}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
 
-          {/* Text */}
-          <div className="sdg-detail-hero-text">
-            <p className="sdg-detail-eyebrow">SDG {card.id}</p>
-            <h2 className="sdg-detail-name">{card.name}</h2>
-            <p className="sdg-detail-desc">{description}</p>
+            {/* Text */}
+            <div className="sdg-detail-hero-text">
+              <p className="sdg-detail-eyebrow">SDG {card.id}</p>
+              <h2 className="sdg-detail-name">{card.name}</h2>
+              <p className="sdg-detail-desc">{description}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── 3. Stats + filter bar ────────────────────────────────────────── */}
       <div className="sdg-detail-bar">
-        {/* Total indicators */}
-        <div className="sdg-stat">
-          <span className="sdg-stat-value" style={{ color: card.color }}>
-            {card.indicatorCount}
-          </span>
-          <span className="sdg-stat-label">Total Indicators</span>
-        </div>
+        {/* Total indicators (only for specific SDG) */}
+        {card && (
+          <>
+            <div className="sdg-stat">
+              <span className="sdg-stat-value" style={{ color: card.color }}>
+                {card.indicatorCount}
+              </span>
+              <span className="sdg-stat-label">Total Indicators</span>
+            </div>
 
-        <div className="sdg-bar-divider" />
+            <div className="sdg-bar-divider" />
+          </>
+        )}
 
         {/* District */}
         <div className="sdg-filter-group">
@@ -350,8 +436,8 @@ const SDGDetail: FC<SDGDetailProps> = ({
           </div>
         </div>
 
-        {/* Data-available chips */}
-        {card.locations.length > 0 && (
+        {/* Data-available chips (only for specific SDG) */}
+        {card && card.locations.length > 0 && (
           <>
             <div className="sdg-bar-divider" />
             <div className="sdg-filter-group">
@@ -378,11 +464,43 @@ const SDGDetail: FC<SDGDetailProps> = ({
           </strong>
         </p>
 
-        <GraphSdg
-          sdgId={activeId}
-          dataPoints={filteredPoints}
-          geography={geographyLabel}
-        />
+        {activeId === "all" ? (
+          <div className="sdg-all-indicators">
+            <h3 className="sdg-all-title">All Goals - All Indicators</h3>
+            <div className="sdg-all-grid">
+              {cards.map((sdgCard) => {
+                // Filter dataPoints to only include the current SDG
+                const sdgData = dataset.get(sdgCard.id as SDGNumber);
+                const sdgDataPoints = sdgData
+                  ? filteredPoints.filter((dp) =>
+                      sdgData.dataPoints.some(
+                        (gp) => gp.metricName === dp.metricName
+                      )
+                    )
+                  : [];
+
+                return (
+                  <div key={sdgCard.id} className="sdg-all-card">
+                    <div className="sdg-all-card-header">
+                      <h4>SDG {sdgCard.id}</h4>
+                    </div>
+                    <GraphSdg
+                      sdgId={sdgCard.id as SDGNumber}
+                      dataPoints={sdgDataPoints}
+                      geography={geographyLabel}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <GraphSdg
+            sdgId={activeId}
+            dataPoints={filteredPoints}
+            geography={geographyLabel}
+          />
+        )}
       </div>
     </section>
   );
@@ -415,12 +533,35 @@ const SDGMain: FC = () => {
   const [cards, setCards] = useState<SDGCardModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeSDG, setActiveSDG] = useState<SDGNumber | null>(null);
+  const [activeSDG, setActiveSDG] = useState<SDGNumber | "all" | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
 
   // Derived once after data loads — District → Taluka[] map from the CSV
   const districtTalukaMap = useMemo(
     () => buildDistrictTalukaMap(dataset),
     [dataset],
+  );
+
+  // Handle location click from map - memoized to prevent unnecessary re-renders
+  const handleLocationClick = useCallback(
+    (locationName: string, district?: string, taluka?: string) => {
+      const allDistricts = Object.keys(districtTalukaMap);
+      
+      // If taluka is provided, use it; otherwise use district
+      if (taluka) {
+        setSelectedLocation(taluka);
+      } else if (district && districtTalukaMap[district]) {
+        setSelectedLocation(district);
+      } else if (allDistricts.length > 0) {
+        setSelectedLocation(allDistricts[0]);
+        console.warn(
+          `Location "${locationName}" not found in dataset. Using "${allDistricts[0]}" as fallback.`,
+        );
+      }
+      
+      setActiveSDG(1);
+    },
+    [districtTalukaMap],
   );
 
   useEffect(() => {
@@ -454,6 +595,7 @@ const SDGMain: FC = () => {
           districtTalukaMap={districtTalukaMap}
           initialId={activeSDG}
           onBack={() => setActiveSDG(null)}
+          selectedLocation={selectedLocation}
         />
       </main>
     );
@@ -492,10 +634,9 @@ const SDGMain: FC = () => {
             ))}
         </div>
         <div className="sdgmap">
-          <img
-            src="/images/sdg_map.png"
-            alt="Map of SDG indicators across districts and talukas"
-            className="sdgmap-image"
+          <InteractiveMap
+            onLocationClick={handleLocationClick}
+            selectedLocation={selectedLocation}
           />
         </div>
       </div>
