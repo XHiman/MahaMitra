@@ -15,23 +15,25 @@ import SDGMain from "./components/SDG/SDGMain";
 function App() {
   return (
     <div className="AppDiv" id="ToPageTop">
+      <title>MahaSDG</title>
+      <link rel="icon" type="image/x-icon" href="/favicon.ico" />
       {/* <UtilityBar />
       <Navbar />
       <ScrollToAnchor /> */}
       <section className="AppBody">
         <Routes>
-          <Route index element={<HomePage />} />
+          {/* <Route index element={<HomePage />} />
           <Route
             path="/Annual-Action-Plan"
             element={<AAPDash district="Nashik" />}
           />
           <Route path="/AAP-Dashboard" element={<AAPDashboard />} />
           <Route path="/mahastride" element={<MSride />} />
-          <Route path="/districts" element={<DistrictPage />} />
-          <Route path="/sdg" element={<SDGMain />} />
+          <Route path="/districts" element={<DistrictPage />} /> */}
+          <Route index element={<SDGMain />} />
         </Routes>
       </section>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

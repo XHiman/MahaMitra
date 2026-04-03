@@ -290,6 +290,16 @@ const ChartSvg = memo(
           />
         ))}
 
+        {/* ── Y-axis line ── */}
+        <line
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={INNER_H}
+          stroke="#C8CDD8"
+          strokeWidth="1"
+        />
+
         {/* ── X baseline ── */}
         <line
           x1={0}
@@ -448,22 +458,23 @@ const ChartSvg = memo(
             {t.label}
           </text>
         ))}
+      </g>
 
-        {/* ── Unit label ── */}
-        {unit && (
-          <text
-            x="0"
-            y={-10}
-            fontSize={expanded ? 10 : 8}
+      {/* ── Y-axis label ── */}
+      <text
+        x={-100}
+        y={0}
+        fontSize={expanded ? 10 : 8}
             fill={theme.actual}
             fontFamily="'DM Mono', monospace"
             fontWeight="600"
             opacity="0.8"
-          >
-            {unit}
-          </text>
-        )}
-      </g>
+        textAnchor="middle"
+        transform={`rotate(-90, ${PAD.top}, 20)`}
+        letterSpacing="-0.3"
+      >
+        {unit}
+      </text>
     </svg>
   );
   },
